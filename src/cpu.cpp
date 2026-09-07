@@ -56,6 +56,16 @@ emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 	return result;
 }
 
+emu::status emu::cpu_core::read_mem(const cpu& proc, const addr_t addr, const std::span<std::uint8_t> buf) const
+{
+	return proc.read_mem(addr, buf);
+}
+
+emu::status emu::cpu_core::read_mem(const cpu& proc, const addr_t addr, void* const buf, const std::size_t size) const 
+{
+	return read_mem(proc, addr, std::span(static_cast<std::uint8_t*>(buf), size));
+}
+
 emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
 {
 	if (find_rgn(addr))

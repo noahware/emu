@@ -1,6 +1,7 @@
 #pragma once
 #include "defs.hpp"
 #include <capstone/capstone.h>
+#include <expected>
 #include <span>
 #include <map>
 #include <shared_mutex>
@@ -24,6 +25,20 @@ namespace emu
 		virtual void set_pc(addr_t new_pc) = 0;
 
 	protected:
+		template <class T>
+			requires std::is_trivially_copyable_v<T>
+		[[nodiscard]] std::expected<T, status> read_mem(const cpu& proc, const addr_t addr)
+		{
+			T val;
+			auto result = read_mem(proc, addr, &val, sizeof(T));
+			if (result != status::success)
+				return std::unexpected(result);
+			return val;
+		}
+
+		status read_mem(const cpu& proc, addr_t addr, std::span<std::uint8_t> buf) const;
+		status read_mem(const cpu& proc, addr_t addr, void* buf, std::size_t size) const;
+
 		virtual status execute_insn(cpu& proc, const cs_insn& insn) = 0;
 
 		csh decoder_;

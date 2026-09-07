@@ -18,16 +18,13 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		else
 			return status::invalid_insn;
 
-		const auto rgn = proc.find_rgn_const(addr, size);
-
-		if (!rgn)
-			return status::invalid_mem;
-
 		std::uint64_t val = 0;
 
-		const auto data = rgn->data_of(addr);
+		const auto status = read_mem(proc, addr, &val, size);
 
-		std::memcpy(&val, data, size);
+		if (!status)
+			return status;
+
 		state_.set_reg(reg, val);
 	}
 	else if (insn.id == ARM64_INS_MOV)
