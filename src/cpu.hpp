@@ -24,8 +24,8 @@ namespace emu
 		status read_mem(addr_t addr, std::span<std::uint8_t> buf) const;
 		status write_mem(addr_t addr, std::span<const std::uint8_t> buf);
 
-		[[nodiscard]] virtual std::uintptr_t pc() const = 0;
-		virtual void set_pc(std::uintptr_t new_pc) const = 0;
+		[[nodiscard]] virtual addr_t pc() const = 0;
+		virtual void set_pc(addr_t new_pc) = 0;
 
 	protected:
 		virtual void execute_insn(const cs_insn& insn) = 0;
