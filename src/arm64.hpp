@@ -90,5 +90,16 @@ namespace emu
 		arm64_state state_ = { };
 
 		status execute_insn(cpu& proc, const cs_insn& insn) override;
+
+		status handle_ldr(cpu& proc, const cs_insn& insn);
+		status handle_str(cpu& proc, const cs_insn& insn);
+		status handle_mov(cpu& proc, const cs_insn& insn);
+		status handle_add(cpu& proc, const cs_insn& insn);
+		status handle_sub(cpu& proc, const cs_insn& insn);
+		status handle_ret(cpu& proc, const cs_insn& insn);
+		status handle_b(cpu& proc, const cs_insn& insn);
+		status handle_br(cpu& proc, const cs_insn& insn);
+		status handle_bl(cpu& proc, const cs_insn& insn);
+		status handle_blr(cpu& proc, const cs_insn& insn);
 	};
 }
