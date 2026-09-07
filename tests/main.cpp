@@ -10,7 +10,7 @@ int main()
 {
     LOG("emu");
 
-    emu::arm64::cpu cpu;
+    emu::arm64 cpu;
 
     constexpr std::size_t addr = 0x20000;
     constexpr std::size_t size = 0x1000;

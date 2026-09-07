@@ -1,5 +1,49 @@
 #include "cpu.hpp"
 
+emu::cpu::cpu(const cs_arch arch, const cs_mode mode)
+{
+	cs_open(arch, mode, &decoder_);
+	cs_option(decoder_, CS_OPT_DETAIL, CS_OPT_ON);
+}
+
+emu::status emu::cpu::run(const addr_t addr)
+{
+	set_pc(addr);
+
+	const auto insn = cs_malloc(decoder_);
+
+	while (true)
+	{
+		const addr_t curr_pc = pc();
+
+		const auto rgn = find_rgn_const(curr_pc);
+
+		if (!rgn)
+		{
+			break;
+		}
+
+		const auto pc_off = rgn->offset_of(curr_pc);
+		std::size_t remaining = rgn->size() - pc_off;
+
+		const std::uint8_t* code = rgn->data.data() + pc_off;
+		std::uint64_t decode_addr = curr_pc;
+
+		if (!cs_disasm_iter(decoder_, &code, &remaining, &decode_addr, insn))
+		{
+			break;
+		}
+
+		set_pc(addr + insn->size);
+		
+		execute_insn(*insn);
+	}
+
+	cs_free(insn, 0);
+
+	return { };
+}
+
 emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
 {
 	if (find_rgn(addr))
@@ -76,6 +120,40 @@ emu::status emu::cpu::write_mem(const addr_t addr, const std::span<const std::ui
 	}
 
 	std::memcpy(rgn->data.data() + off, buf.data(), buf.size());
+
+	return { };
+}
+
+emu::rgn_ref_const emu::cpu::find_rgn_const(const addr_t addr) const
+{
+	std::shared_lock lock(mem_mutex_);
+
+	auto it = mem_.upper_bound(addr);
+	if (it != mem_.begin())
+	{
+		--it;
+		if (it->second.contains(addr))
+		{
+			return rgn_ref_const{ &it->second, std::move(lock) };
+		}
+	}
+
+	return { };
+}
+
+emu::rgn_ref_mut emu::cpu::find_rgn_mut(const addr_t addr)
+{
+	std::unique_lock lock(mem_mutex_);
+
+	auto it = mem_.upper_bound(addr);
+	if (it != mem_.begin())
+	{
+		--it;
+		if (it->second.contains(addr))
+		{
+			return rgn_ref_mut{ &it->second, std::move(lock) };
+		}
+	}
 
 	return { };
 }
