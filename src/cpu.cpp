@@ -45,7 +45,7 @@ emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 
 		const std::size_t insn_len = insn->size;
 
-		hooks_.on_exec(addr, insn_len);
+		hooks_.on_exec(curr_pc, insn_len);
 
 		pc_changed_ = false;
 		result = execute_insn(proc, *insn);
