@@ -15,7 +15,7 @@ cmake --build build --config Release
 
 ## Creating instance
 
-The `emu::cpu` manages the overall memory state, whereas the `emu::cpu_core`/`emu::arm64_core` manages a CPU thread.
+The `emu::cpu` manages the overall memory state. The `emu::cpu_core` or `emu::arm64_core` manages a CPU thread/the actual execution instance. There can be *multiple* cores to one `emu::cpu`, allowing for multi-threaded execution.
 
 ```c++
 emu::cpu proc;
