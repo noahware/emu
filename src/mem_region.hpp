@@ -1,5 +1,6 @@
 #pragma once
 #include "defs.hpp"
+#include <shared_mutex>
 #include <vector>
 
 namespace emu
@@ -23,5 +24,23 @@ namespace emu
 		{
 			return data.size();
 		}
+	};
+
+	struct rgn_ref_const
+	{
+		const mem_region* rgn;
+		std::shared_lock<std::shared_mutex> lock;
+
+		explicit operator bool() const { return rgn != nullptr; }
+		const mem_region* operator->() const { return rgn; }
+	};
+
+	struct rgn_ref_mut
+	{
+		mem_region* rgn;
+		std::unique_lock<std::shared_mutex> lock;
+
+		explicit operator bool() const { return rgn != nullptr; }
+		mem_region* operator->() const { return rgn; }
 	};
 }
