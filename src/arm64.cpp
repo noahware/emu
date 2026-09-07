@@ -84,11 +84,22 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 
 		set_pc(ret_addr);
 	}
+	else if (insn.id == ARM64_INS_B)
+	{
+		set_pc(ops[0].imm);
+	}
 	else if (insn.id == ARM64_INS_BR)
 	{
 		const std::uint64_t target_addr = reg(ops[0].reg);
 
 		set_pc(target_addr);
+	}
+	else if (insn.id == ARM64_INS_BL)
+	{
+		const std::uint64_t ret_addr = pc() + insn.size;
+
+		set_reg(ARM64_REG_LR, ret_addr);
+		set_pc(ops[0].imm);
 	}
 	else if (insn.id == ARM64_INS_BLR)
 	{
