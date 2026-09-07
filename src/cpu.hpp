@@ -16,10 +16,10 @@ namespace emu
 	class cpu
 	{
 	public:
-		virtual status run(addr_t addr) = 0;
-		virtual status map_mem(addr_t addr, std::size_t size) = 0;
-		virtual status read_mem(addr_t addr, std::span<std::uint8_t> buf) = 0;
-		virtual status write_mem(addr_t addr, std::span<const std::uint8_t> buf) = 0;
+		status run(addr_t addr);
+		status map_mem(addr_t addr, std::size_t size);
+		status read_mem(addr_t addr, std::span<std::uint8_t> buf) const;
+		status write_mem(addr_t addr, std::span<const std::uint8_t> buf);
 
 	protected:
 		[[nodiscard]] rgn_ref_const find_rgn(const addr_t addr) const noexcept

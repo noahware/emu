@@ -10,6 +10,11 @@ namespace emu
 		addr_t addr;
 		std::vector<std::uint8_t> data;
 
+		[[nodiscard]] std::size_t offset_of(const addr_t off_addr) const noexcept
+		{
+			return off_addr - addr;
+		}
+
 		[[nodiscard]] bool contains(const addr_t check_addr) const noexcept
 		{
 			return addr <= check_addr && check_addr <= end_addr();
