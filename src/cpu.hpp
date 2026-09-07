@@ -53,6 +53,8 @@ namespace emu
 
 		status read_mem(const cpu& proc, addr_t addr, std::span<std::uint8_t> buf) const;
 		status read_mem(const cpu& proc, addr_t addr, void* buf, std::size_t size) const;
+		status write_mem(cpu& proc, addr_t addr, std::span<const std::uint8_t> buf);
+		status write_mem(cpu& proc, addr_t addr, const void* buf, std::size_t size);
 
 		virtual status execute_insn(cpu& proc, const cs_insn& insn) = 0;
 

@@ -68,6 +68,18 @@ emu::status emu::cpu_core::read_mem(const cpu& proc, const addr_t addr, void* co
 	return read_mem(proc, addr, std::span(static_cast<std::uint8_t*>(buf), size));
 }
 
+emu::status emu::cpu_core::write_mem(cpu& proc, const addr_t addr, const std::span<const std::uint8_t> buf)
+{
+	hooks_.on_write(addr, buf.size());
+
+	return proc.write_mem(addr, buf);
+}
+
+emu::status emu::cpu_core::write_mem(cpu& proc, const addr_t addr, const void* const buf, const std::size_t size)
+{
+	return write_mem(proc, addr, std::span(static_cast<const std::uint8_t*>(buf), size));
+}
+
 emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
 {
 	if (find_rgn(addr))

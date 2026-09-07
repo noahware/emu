@@ -4,6 +4,8 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 {
 	const auto& ops = insn.detail->arm64.operands;
 
+	status status = status::success;
+
 	if (insn.id == ARM64_INS_LDR)
 	{
 		const addr_t addr = state_.mem_op_addr(ops[1].mem);
@@ -20,12 +22,28 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 
 		std::uint64_t val = 0;
 
-		const auto status = read_mem(proc, addr, &val, size);
+		status = read_mem(proc, addr, &val, size);
 
-		if (!status)
-			return status;
+		if (status)
+			state_.set_reg(reg, val);
+	}
+	else if (insn.id == ARM64_INS_STR)
+	{
+		const addr_t addr = state_.mem_op_addr(ops[1].mem);
 
-		state_.set_reg(reg, val);
+		const arm64_reg reg = ops[0].reg;
+		std::size_t size;
+
+		if (arm64_state::is_w_reg(reg))
+			size = sizeof(std::uint32_t);
+		else if (arm64_state::is_x_reg(reg))
+			size = sizeof(std::uint64_t);
+		else
+			return status::invalid_insn;
+
+		const std::uint64_t val = state_.reg(reg);
+
+		status = write_mem(proc, addr, &val, size);
 	}
 	else if (insn.id == ARM64_INS_MOV)
 	{
@@ -64,5 +82,5 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		return status::unhandled_insn;
 	}
 
-	return status::success;
+	return status;
 }
