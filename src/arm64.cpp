@@ -1,6 +1,6 @@
 #include "arm64.hpp"
 
-emu::status emu::arm64::execute_insn(const cs_insn& insn)
+emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 {
 	if (insn.id == ARM64_INS_LDR)
 	{
@@ -17,7 +17,7 @@ emu::status emu::arm64::execute_insn(const cs_insn& insn)
 		else
 			return status::invalid_insn;
 
-		const auto rgn = find_rgn_const(addr, size); 
+		const auto rgn = proc.find_rgn_const(addr, size);
 
 		if (!rgn)
 			return status::invalid_mem;

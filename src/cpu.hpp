@@ -10,22 +10,31 @@
 
 namespace emu
 {
-	class cpu
+	class cpu;
+
+	class cpu_core
 	{
 	public:
-		cpu(cs_arch arch, cs_mode mode);
-		virtual ~cpu();
+		cpu_core(cs_arch arch, cs_mode mode);
+		virtual ~cpu_core();
 
-		status run(addr_t addr);
-		status map_mem(addr_t addr, std::size_t size);
-		status read_mem(addr_t addr, std::span<std::uint8_t> buf) const;
-		status write_mem(addr_t addr, std::span<const std::uint8_t> buf);
+		status run(cpu& proc, addr_t addr);
 
 		[[nodiscard]] virtual addr_t pc() const = 0;
 		virtual void set_pc(addr_t new_pc) = 0;
 
 	protected:
-		virtual status execute_insn(const cs_insn& insn) = 0;
+		virtual status execute_insn(cpu& proc, const cs_insn& insn) = 0;
+
+		csh decoder_;
+	};
+
+	class cpu
+	{
+	public:
+		status map_mem(addr_t addr, std::size_t size);
+		status read_mem(addr_t addr, std::span<std::uint8_t> buf) const;
+		status write_mem(addr_t addr, std::span<const std::uint8_t> buf);
 
 		[[nodiscard]] rgn_ref_const find_rgn_const(addr_t addr, std::size_t s = 0) const;
 		[[nodiscard]] rgn_ref_mut find_rgn_mut(addr_t addr, std::size_t s = 0);
@@ -40,7 +49,7 @@ namespace emu
 			return find_rgn_mut(addr, s);
 		}
 
-		csh decoder_;
+	private:
 		mutable std::shared_mutex mem_mutex_;
 		std::map<addr_t, mem_region> mem_;
 	};

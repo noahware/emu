@@ -59,11 +59,11 @@ namespace emu
 		}
 	};
 
-	class arm64 : public cpu
+	class arm64_core : public cpu_core
 	{
 	public:
-		arm64()
-			:	cpu(CS_ARCH_ARM64, CS_MODE_LITTLE_ENDIAN) { }
+		arm64_core()
+			:	cpu_core(CS_ARCH_ARM64, CS_MODE_LITTLE_ENDIAN) { }
 
 		[[nodiscard]] addr_t pc() const override
 		{
@@ -88,6 +88,6 @@ namespace emu
 	protected:
 		arm64_state state_ = { };
 
-		status execute_insn(const cs_insn& insn) override;
+		status execute_insn(cpu& proc, const cs_insn& insn) override;
 	};
 }

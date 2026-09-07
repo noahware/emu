@@ -1,17 +1,17 @@
 #include "cpu.hpp"
 
-emu::cpu::cpu(const cs_arch arch, const cs_mode mode)
+emu::cpu_core::cpu_core(const cs_arch arch, const cs_mode mode)
 {
 	cs_open(arch, mode, &decoder_);
 	cs_option(decoder_, CS_OPT_DETAIL, CS_OPT_ON);
 }
 
-emu::cpu::~cpu()
+emu::cpu_core::~cpu_core()
 {
 	cs_close(&decoder_);
 }
 
-emu::status emu::cpu::run(const addr_t addr)
+emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 {
 	set_pc(addr);
 
@@ -23,7 +23,7 @@ emu::status emu::cpu::run(const addr_t addr)
 	{
 		const addr_t curr_pc = pc();
 
-		const auto rgn = find_rgn_const(curr_pc);
+		const auto rgn = proc.find_rgn_const(curr_pc);
 
 		if (!rgn)
 		{
@@ -45,7 +45,7 @@ emu::status emu::cpu::run(const addr_t addr)
 
 		set_pc(curr_pc + insn->size);
 
-		result = execute_insn(*insn);
+		result = execute_insn(proc, *insn);
 
 		if (result.failed())
 			break;
@@ -53,7 +53,7 @@ emu::status emu::cpu::run(const addr_t addr)
 
 	cs_free(insn, 0);
 
-	return status::success;
+	return result;
 }
 
 emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
