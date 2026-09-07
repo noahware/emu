@@ -14,6 +14,7 @@ namespace emu
 	{
 	public:
 		cpu(cs_arch arch, cs_mode mode);
+		virtual ~cpu();
 
 		status run(addr_t addr);
 		status map_mem(addr_t addr, std::size_t size);

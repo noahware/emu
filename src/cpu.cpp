@@ -6,6 +6,11 @@ emu::cpu::cpu(const cs_arch arch, const cs_mode mode)
 	cs_option(decoder_, CS_OPT_DETAIL, CS_OPT_ON);
 }
 
+emu::cpu::~cpu()
+{
+	cs_close(&decoder_);
+}
+
 emu::status emu::cpu::run(const addr_t addr)
 {
 	set_pc(addr);
