@@ -33,7 +33,14 @@ int main()
         LOG("buffers are NOT equal");
     }
 
-    std::array<std::uint8_t, 4> stub = { 0x01, 0x00, 0x40, 0xB9 };
+    std::array<std::uint8_t, 4> stub = { 0x01, 0x00, 0x40, 0xB9 }; // ldr w1, [x0]
+
+    core.hook_mem(addr, addr + size, emu::prot_all,
+        [](const emu::addr_t addr_, const std::size_t size_, const emu::mem_prot prot)
+        {
+            LOG("{}-{} is being accessed with prot {}", addr_, addr_ + size_, static_cast<std::uint8_t>(prot));
+        }
+    );
 
     core.set_reg(ARM64_REG_X0, addr);
     proc.write_mem(addr, stub);

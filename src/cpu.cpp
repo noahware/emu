@@ -58,6 +58,8 @@ emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 
 emu::status emu::cpu_core::read_mem(const cpu& proc, const addr_t addr, const std::span<std::uint8_t> buf) const
 {
+	hooks_.on_read(addr, buf.size());
+
 	return proc.read_mem(addr, buf);
 }
 

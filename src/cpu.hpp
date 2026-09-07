@@ -6,6 +6,7 @@
 #include <map>
 #include <shared_mutex>
 
+#include "hook.hpp"
 #include "mem_region.hpp"
 #include "status.hpp"
 
@@ -24,7 +25,19 @@ namespace emu
 		[[nodiscard]] virtual addr_t pc() const = 0;
 		virtual void set_pc(addr_t new_pc) = 0;
 
+		hooks::handle hook_mem(const addr_t start_addr, const addr_t end_addr, const mem_prot prot, hooks::mem_cb cb)
+		{
+			return hooks_.add_mem(start_addr, end_addr, prot, std::move(cb));
+		}
+
+		void remove_hook(const hooks::handle h)
+		{
+			hooks_.remove(h);
+		}
+
 	protected:
+		hooks hooks_;
+
 		template <class T>
 			requires std::is_trivially_copyable_v<T>
 		[[nodiscard]] std::expected<T, status> read_mem(const cpu& proc, const addr_t addr)
