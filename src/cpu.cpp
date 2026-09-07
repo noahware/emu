@@ -181,3 +181,30 @@ emu::rgn_ref_mut emu::cpu::find_rgn_mut(const addr_t addr, const std::size_t s)
 
 	return { };
 }
+
+void emu::cpu::add_core(std::shared_ptr<cpu_core> core)
+{
+	std::unique_lock lock(cores_mutex_);
+	cores_.push_back(std::move(core));
+}
+
+emu::cpu::hook_handle emu::cpu::hook_mem(const addr_t start_addr, const addr_t end_addr, const mem_prot prot, hooks::mem_cb cb)
+{
+	std::shared_lock lock(cores_mutex_);
+
+	hook_handle handles;
+	handles.reserve(cores_.size());
+
+	for (auto& core : cores_)
+		handles.push_back(core->hook_mem(start_addr, end_addr, prot, cb));
+
+	return handles;
+}
+
+void emu::cpu::remove_hook(const hook_handle& h)
+{
+	std::shared_lock lock(cores_mutex_);
+
+	for (std::size_t i = 0; i < h.size() && i < cores_.size(); ++i)
+		cores_[i]->remove_hook(h[i]);
+}

@@ -11,7 +11,7 @@ int main()
     LOG("emu");
 
     emu::cpu proc;
-    emu::arm64_core core;
+    auto core = proc.create_core<emu::arm64_core>();
 
     constexpr std::size_t addr = 0x20000;
     constexpr std::size_t size = 0x1000;
@@ -35,21 +35,21 @@ int main()
 
     std::array<std::uint8_t, 4> stub = { 0x01, 0x00, 0x40, 0xB9 }; // ldr w1, [x0]
 
-    core.hook_mem(addr, addr + size, emu::prot_all,
+    proc.hook_mem(addr, addr + size, emu::prot_all,
         [](const emu::addr_t addr_, const std::size_t size_, const emu::mem_prot prot)
         {
             LOG("{}-{} is being accessed with prot {}", addr_, addr_ + size_, static_cast<std::uint8_t>(prot));
         }
     );
 
-    core.set_reg(ARM64_REG_X0, addr);
+    core->set_reg(ARM64_REG_X0, addr);
     proc.write_mem(addr, stub);
 
-    const emu::status status = core.run(proc, addr);
+    const emu::status status = core->run(proc, addr);
 
     LOG("run returned with {}", status.to_string());
-    LOG("W1 value: 0x{:X}", core.reg(ARM64_REG_W1));
-    LOG("pc: 0x{:X}", core.pc());
+    LOG("W1 value: 0x{:X}", core->reg(ARM64_REG_W1));
+    LOG("pc: 0x{:X}", core->pc());
 
     return 0;
 }

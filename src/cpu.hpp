@@ -1,9 +1,11 @@
 #pragma once
 #include "defs.hpp"
 #include <capstone/capstone.h>
+#include <concepts>
 #include <expected>
 #include <span>
 #include <map>
+#include <vector>
 #include <shared_mutex>
 
 #include "hook.hpp"
@@ -60,6 +62,8 @@ namespace emu
 	class cpu
 	{
 	public:
+		using hook_handle = std::vector<hooks::handle>;
+
 		status map_mem(addr_t addr, std::size_t size);
 		status read_mem(addr_t addr, std::span<std::uint8_t> buf) const;
 		status write_mem(addr_t addr, std::span<const std::uint8_t> buf);
@@ -77,8 +81,31 @@ namespace emu
 			return find_rgn_mut(addr, s);
 		}
 
+		void add_core(std::shared_ptr<cpu_core> core);
+
+		template <class T, class... Args>
+			requires std::derived_from<T, cpu_core>
+		std::shared_ptr<T> create_core(Args&&... args)
+		{
+			auto core = std::make_shared<T>(std::forward<Args>(args)...);
+			add_core(core);
+			return core;
+		}
+
+		hook_handle hook_mem(addr_t start_addr, addr_t end_addr, mem_prot prot, hooks::mem_cb cb);
+		void remove_hook(const hook_handle& h);
+
+		[[nodiscard]] std::vector<std::shared_ptr<cpu_core>> cores() const
+		{
+			std::shared_lock lock(cores_mutex_);
+			return cores_;
+		}
+
 	private:
 		mutable std::shared_mutex mem_mutex_;
 		std::map<addr_t, mem_region> mem_;
+
+		mutable std::shared_mutex cores_mutex_;
+		std::vector<std::shared_ptr<cpu_core>> cores_;
 	};
 }
