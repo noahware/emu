@@ -28,7 +28,7 @@ namespace emu
 		virtual void set_pc(addr_t new_pc) = 0;
 
 	protected:
-		virtual void execute_insn(const cs_insn& insn) = 0;
+		virtual bool execute_insn(const cs_insn& insn) = 0;
 
 		[[nodiscard]] rgn_ref_const find_rgn_const(addr_t addr, std::size_t s = 0) const;
 		[[nodiscard]] rgn_ref_mut find_rgn_mut(addr_t addr, std::size_t s = 0);

@@ -1,6 +1,6 @@
 #include "arm64.hpp"
 
-void emu::arm64::execute_insn(const cs_insn& insn)
+bool emu::arm64::execute_insn(const cs_insn& insn)
 {
 	if (insn.id == ARM64_INS_LDR)
 	{
@@ -15,12 +15,12 @@ void emu::arm64::execute_insn(const cs_insn& insn)
 		else if (arm64_state::is_x_reg(reg))
 			size = sizeof(std::uint64_t);
 		else
-			return;
+			return false;
 
 		const auto rgn = find_rgn_const(addr, size); 
 
 		if (!rgn)
-			return;
+			return false;
 
 		std::uint64_t val = 0;
 
@@ -29,4 +29,10 @@ void emu::arm64::execute_insn(const cs_insn& insn)
 		std::memcpy(&val, data, size);
 		state_.set_reg(reg, val);
 	}
+	else if (insn.id == ARM64_INS_UDF)
+	{
+		return false;
+	}
+
+	return true;
 }

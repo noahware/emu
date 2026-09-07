@@ -36,7 +36,10 @@ emu::status emu::cpu::run(const addr_t addr)
 
 		set_pc(addr + insn->size);
 		
-		execute_insn(*insn);
+		if (!execute_insn(*insn))
+		{
+			break;
+		}
 	}
 
 	cs_free(insn, 0);
