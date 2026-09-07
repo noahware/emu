@@ -5,7 +5,7 @@ namespace emu
 {
 	struct arm64_state
 	{
-		std::uint64_t x[30];
+		std::uint64_t x[31];
 		std::uint64_t sp;
 		std::uint64_t pc;
 
@@ -28,7 +28,7 @@ namespace emu
 			if (reg == ARM64_REG_X29 || reg == ARM64_REG_FP)
 				return x[29];
 			if (reg == ARM64_REG_X30 || reg == ARM64_REG_LR)
-				return x[29];
+				return x[30];
 			if (reg == ARM64_REG_SP)
 				return sp;
 
@@ -43,6 +43,8 @@ namespace emu
 				x[reg - ARM64_REG_W0] = static_cast<std::uint32_t>(val);
 			else if (reg == ARM64_REG_X29 || reg == ARM64_REG_FP)
 				x[29] = val;
+			else if (reg == ARM64_REG_X30 || reg == ARM64_REG_LR)
+				x[30] = val;
 			else if (reg == ARM64_REG_SP)
 				sp = val;
 		}
