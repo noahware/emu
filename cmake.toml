@@ -1,0 +1,14 @@
+[project]
+name = "emu"
+languages = ["CXX"]
+
+[fetch-content.capstone]
+git = "https://github.com/capstone-engine/capstone"
+tag = "v5"
+
+[target.emu-tests]
+type = "executable"
+sources = ["tests/main.cpp", "src/*.hpp", "src/*.cpp"]
+include-directories = ["src"]
+compile-features = ["cxx_std_20"]
+link-libraries = ["capstone_static"]
