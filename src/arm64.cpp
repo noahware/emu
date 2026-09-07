@@ -34,12 +34,33 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 	{
 		const arm64_reg dest = ops[0].reg;
 
-		const arm64_reg src_reg = ops[1].reg;
-		const auto src_imm = ops[1].imm;
-		
-		const std::uint64_t src_val = ops[1].type == ARM64_OP_REG ? state_.reg(src_reg) : src_imm;
+		const std::uint64_t src_val = ops[1].type == ARM64_OP_REG
+			? state_.reg(ops[1].reg)
+			: static_cast<std::uint64_t>(ops[1].imm);
 
 		state_.set_reg(dest, src_val);
+	}
+	else if (insn.id == ARM64_INS_ADD)
+	{
+		const arm64_reg dest = ops[0].reg;
+
+		const std::uint64_t x_val = state_.reg(ops[1].reg);
+		const std::uint64_t y_val = ops[2].type == ARM64_OP_REG
+			? state_.reg(ops[2].reg)
+			: static_cast<std::uint64_t>(ops[2].imm);
+
+		state_.set_reg(dest, x_val + y_val);
+	}
+	else if (insn.id == ARM64_INS_SUB)
+	{
+		const arm64_reg dest = ops[0].reg;
+
+		const std::uint64_t x_val = state_.reg(ops[1].reg);
+		const std::uint64_t y_val = ops[2].type == ARM64_OP_REG
+			? state_.reg(ops[2].reg)
+			: static_cast<std::uint64_t>(ops[2].imm);
+
+		state_.set_reg(dest, x_val - y_val);
 	}
 	else
 	{
