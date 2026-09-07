@@ -25,7 +25,7 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		status = read_mem(proc, addr, &val, size);
 
 		if (status)
-			state_.set_reg(reg, val);
+			set_reg(reg, val);
 	}
 	else if (insn.id == ARM64_INS_STR)
 	{
@@ -41,7 +41,7 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		else
 			return status::invalid_insn;
 
-		const std::uint64_t val = state_.reg(reg);
+		const std::uint64_t val = reg(reg);
 
 		status = write_mem(proc, addr, &val, size);
 	}
@@ -50,32 +50,53 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		const arm64_reg dest = ops[0].reg;
 
 		const std::uint64_t src_val = ops[1].type == ARM64_OP_REG
-			? state_.reg(ops[1].reg)
+			? reg(ops[1].reg)
 			: static_cast<std::uint64_t>(ops[1].imm);
 
-		state_.set_reg(dest, src_val);
+		set_reg(dest, src_val);
 	}
 	else if (insn.id == ARM64_INS_ADD)
 	{
 		const arm64_reg dest = ops[0].reg;
 
-		const std::uint64_t x_val = state_.reg(ops[1].reg);
+		const std::uint64_t x_val = reg(ops[1].reg);
 		const std::uint64_t y_val = ops[2].type == ARM64_OP_REG
-			? state_.reg(ops[2].reg)
+			? reg(ops[2].reg)
 			: static_cast<std::uint64_t>(ops[2].imm);
 
-		state_.set_reg(dest, x_val + y_val);
+		set_reg(dest, x_val + y_val);
 	}
 	else if (insn.id == ARM64_INS_SUB)
 	{
 		const arm64_reg dest = ops[0].reg;
 
-		const std::uint64_t x_val = state_.reg(ops[1].reg);
+		const std::uint64_t x_val = reg(ops[1].reg);
 		const std::uint64_t y_val = ops[2].type == ARM64_OP_REG
-			? state_.reg(ops[2].reg)
+			? reg(ops[2].reg)
 			: static_cast<std::uint64_t>(ops[2].imm);
 
-		state_.set_reg(dest, x_val - y_val);
+		set_reg(dest, x_val - y_val);
+	}
+	else if (insn.id == ARM64_INS_RET)
+	{
+		const arm64_reg reg = insn.detail->arm64.op_count > 0 ? ops[0].reg : ARM64_REG_LR;
+		const std::uint64_t ret_addr = reg(reg);
+
+		set_pc(ret_addr);
+	}
+	else if (insn.id == ARM64_INS_BR)
+	{
+		const std::uint64_t target_addr = reg(ops[0].reg);
+
+		set_pc(target_addr);
+	}
+	else if (insn.id == ARM64_INS_BLR)
+	{
+		const std::uint64_t ret_addr = pc(); // it is already pc+4
+		const std::uint64_t target_addr = reg(ops[0].reg);
+
+		set_reg(ARM64_REG_LR, ret_addr);
+		set_pc(target_addr);
 	}
 	else
 	{
