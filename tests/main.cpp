@@ -25,12 +25,20 @@ int main()
 
     if (std::ranges::equal(write_buf, read_buf))
     {
-        LOG("bufers are equal");
+        LOG("buffers are equal");
     }
     else
     {
-        LOG("bufers are NOT equal");
+        LOG("buffers are NOT equal");
     }
+
+    std::array<std::uint8_t, 4> stub = { 0x01, 0x00, 0x40, 0xB9 };
+
+    cpu.set_reg(ARM64_REG_X0, addr);
+    cpu.write_mem(addr, stub);
+    cpu.run(addr);
+
+    LOG("W1 value: 0x{:X}", cpu.reg(ARM64_REG_W1));
 
     return 0;
 }
