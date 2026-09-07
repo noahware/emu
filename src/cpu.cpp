@@ -31,7 +31,7 @@ emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
 
 	std::unique_lock lock(mem_mutex_);
 
-	mem_[addr] = mem_region{ addr, { } };
+	mem_[addr] = mem_region{ addr, std::vector<std::uint8_t>(size, 0) };
 
 	return { };
 }
