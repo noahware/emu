@@ -3,10 +3,10 @@
 #include <cstddef>
 #include <span>
 
+#include "defs.hpp"
+
 namespace emu
 {
-	using addr_t = std::uint64_t;
-
 	class status
 	{
 
