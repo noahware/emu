@@ -47,12 +47,14 @@ emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 
 		hooks_.on_exec(addr, insn_len);
 
-		set_pc(curr_pc + insn_len);
-
+		pc_changed_ = false;
 		result = execute_insn(proc, *insn);
 
 		if (result.failed())
 			break;
+
+		if (!pc_changed_)
+			set_pc(curr_pc + insn_len);
 	}
 
 	cs_free(insn, 0);

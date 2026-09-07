@@ -25,7 +25,10 @@ namespace emu
 		status run(cpu& proc, addr_t addr);
 
 		[[nodiscard]] virtual addr_t pc() const = 0;
-		virtual void set_pc(addr_t new_pc) = 0;
+		virtual void set_pc(addr_t new_pc)
+		{
+			pc_changed_ = true;
+		}
 
 		hooks::handle hook_mem(const addr_t start_addr, const addr_t end_addr, const mem_prot prot, hooks::mem_cb cb)
 		{
@@ -38,6 +41,7 @@ namespace emu
 		}
 
 	protected:
+		bool pc_changed_ = false;
 		hooks hooks_;
 
 		template <class T>

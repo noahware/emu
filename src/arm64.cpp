@@ -31,17 +31,17 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 	{
 		const addr_t addr = state_.mem_op_addr(ops[1].mem);
 
-		const arm64_reg reg = ops[0].reg;
+		const arm64_reg dest = ops[0].reg;
 		std::size_t size;
 
-		if (arm64_state::is_w_reg(reg))
+		if (arm64_state::is_w_reg(dest))
 			size = sizeof(std::uint32_t);
-		else if (arm64_state::is_x_reg(reg))
+		else if (arm64_state::is_x_reg(dest))
 			size = sizeof(std::uint64_t);
 		else
 			return status::invalid_insn;
 
-		const std::uint64_t val = reg(reg);
+		const std::uint64_t val = reg(dest);
 
 		status = write_mem(proc, addr, &val, size);
 	}
@@ -79,8 +79,8 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 	}
 	else if (insn.id == ARM64_INS_RET)
 	{
-		const arm64_reg reg = insn.detail->arm64.op_count > 0 ? ops[0].reg : ARM64_REG_LR;
-		const std::uint64_t ret_addr = reg(reg);
+		const arm64_reg target = insn.detail->arm64.op_count > 0 ? ops[0].reg : ARM64_REG_LR;
+		const std::uint64_t ret_addr = reg(target);
 
 		set_pc(ret_addr);
 	}
@@ -92,7 +92,7 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 	}
 	else if (insn.id == ARM64_INS_BLR)
 	{
-		const std::uint64_t ret_addr = pc(); // it is already pc+4
+		const std::uint64_t ret_addr = pc() + insn.size;
 		const std::uint64_t target_addr = reg(ops[0].reg);
 
 		set_reg(ARM64_REG_LR, ret_addr);

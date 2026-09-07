@@ -72,6 +72,7 @@ namespace emu
 
 		void set_pc(const addr_t new_pc) override
 		{
+			cpu_core::set_pc(new_pc);
 			state_.pc = new_pc;
 		}
 
