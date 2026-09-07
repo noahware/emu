@@ -15,6 +15,16 @@ namespace emu
 			return off_addr - addr;
 		}
 
+		[[nodiscard]] std::uint8_t* data_of(const addr_t data_addr) noexcept
+		{
+			return data.data() - offset_of(data_addr);
+		}
+
+		[[nodiscard]] const std::uint8_t* data_of(const addr_t data_addr) const noexcept
+		{
+			return data.data() - offset_of(data_addr);
+		}
+
 		[[nodiscard]] bool contains(const addr_t check_addr) const noexcept
 		{
 			return addr <= check_addr && check_addr <= end_addr();

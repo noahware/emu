@@ -26,7 +26,7 @@ emu::status emu::cpu::run(const addr_t addr)
 		const auto pc_off = rgn->offset_of(curr_pc);
 		std::size_t remaining = rgn->size() - pc_off;
 
-		const std::uint8_t* code = rgn->data.data() + pc_off;
+		const std::uint8_t* code = rgn->data_of(curr_pc);
 		std::uint64_t decode_addr = curr_pc;
 
 		if (!cs_disasm_iter(decoder_, &code, &remaining, &decode_addr, insn))
@@ -124,7 +124,7 @@ emu::status emu::cpu::write_mem(const addr_t addr, const std::span<const std::ui
 	return { };
 }
 
-emu::rgn_ref_const emu::cpu::find_rgn_const(const addr_t addr) const
+emu::rgn_ref_const emu::cpu::find_rgn_const(const addr_t addr, const std::size_t s) const
 {
 	std::shared_lock lock(mem_mutex_);
 
@@ -132,7 +132,7 @@ emu::rgn_ref_const emu::cpu::find_rgn_const(const addr_t addr) const
 	if (it != mem_.begin())
 	{
 		--it;
-		if (it->second.contains(addr))
+		if (it->second.contains(addr) && (!s || it->second.contains(addr + s)))
 		{
 			return rgn_ref_const{ &it->second, std::move(lock) };
 		}
@@ -141,7 +141,7 @@ emu::rgn_ref_const emu::cpu::find_rgn_const(const addr_t addr) const
 	return { };
 }
 
-emu::rgn_ref_mut emu::cpu::find_rgn_mut(const addr_t addr)
+emu::rgn_ref_mut emu::cpu::find_rgn_mut(const addr_t addr, const std::size_t s)
 {
 	std::unique_lock lock(mem_mutex_);
 
@@ -149,7 +149,7 @@ emu::rgn_ref_mut emu::cpu::find_rgn_mut(const addr_t addr)
 	if (it != mem_.begin())
 	{
 		--it;
-		if (it->second.contains(addr))
+		if (it->second.contains(addr) && (!s || it->second.contains(addr + s)))
 		{
 			return rgn_ref_mut{ &it->second, std::move(lock) };
 		}

@@ -30,17 +30,17 @@ namespace emu
 	protected:
 		virtual void execute_insn(const cs_insn& insn) = 0;
 
-		[[nodiscard]] rgn_ref_const find_rgn_const(addr_t addr) const;
-		[[nodiscard]] rgn_ref_mut find_rgn_mut(addr_t addr);
+		[[nodiscard]] rgn_ref_const find_rgn_const(addr_t addr, std::size_t s = 0) const;
+		[[nodiscard]] rgn_ref_mut find_rgn_mut(addr_t addr, std::size_t s = 0);
 
-		[[nodiscard]] rgn_ref_mut find_rgn(const addr_t addr) const
+		[[nodiscard]] rgn_ref_const find_rgn(const addr_t addr, const std::size_t s = 0) const
 		{
-			return find_rgn(addr);
+			return find_rgn_const(addr, s);
 		}
 
-		[[nodiscard]] rgn_ref_mut find_rgn(const addr_t addr)
+		[[nodiscard]] rgn_ref_mut find_rgn(const addr_t addr, const std::size_t s = 0)
 		{
-			return find_rgn_mut(addr);
+			return find_rgn_mut(addr, s);
 		}
 
 		csh decoder_;
