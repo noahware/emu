@@ -86,6 +86,6 @@ namespace emu
 	protected:
 		arm64_state state_ = { };
 
-		bool execute_insn(const cs_insn& insn) override;
+		status execute_insn(const cs_insn& insn) override;
 	};
 }

@@ -36,8 +36,10 @@ int main()
 
     cpu.set_reg(ARM64_REG_X0, addr);
     cpu.write_mem(addr, stub);
-    cpu.run(addr);
 
+    const emu::status status = cpu.run(addr);
+
+    LOG("run returned with {}", status.to_string());
     LOG("W1 value: 0x{:X}", cpu.reg(ARM64_REG_W1));
 
     return 0;

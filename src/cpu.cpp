@@ -12,6 +12,8 @@ emu::status emu::cpu::run(const addr_t addr)
 
 	const auto insn = cs_malloc(decoder_);
 
+	status result = status::success;
+
 	while (true)
 	{
 		const addr_t curr_pc = pc();
@@ -20,6 +22,7 @@ emu::status emu::cpu::run(const addr_t addr)
 
 		if (!rgn)
 		{
+			result = status::invalid_mem;
 			break;
 		}
 
@@ -31,27 +34,28 @@ emu::status emu::cpu::run(const addr_t addr)
 
 		if (!cs_disasm_iter(decoder_, &code, &remaining, &decode_addr, insn))
 		{
+			result = status::invalid_insn;
 			break;
 		}
 
-		set_pc(addr + insn->size);
-		
-		if (!execute_insn(*insn))
-		{
+		set_pc(curr_pc + insn->size);
+
+		result = execute_insn(*insn);
+
+		if (result.failed())
 			break;
-		}
 	}
 
 	cs_free(insn, 0);
 
-	return { };
+	return status::success;
 }
 
 emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
 {
 	if (find_rgn(addr))
 	{
-		return { };
+		return status::invalid_mem;
 	}
 
 	// todo: handle case where there is a region before AND after it
@@ -59,7 +63,7 @@ emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
 	{
 		prev_rgn->data.resize(prev_rgn->size() + size);
 
-		return { };
+		return status::success;
 	}
 
 	if (const auto next_rgn = find_rgn(addr + size))
@@ -73,14 +77,14 @@ emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
 		node.key() = addr;
 		mem_.insert(std::move(node));
 
-		return { };
+		return status::success;
 	}
 
 	std::unique_lock lock(mem_mutex_);
 
 	mem_[addr] = mem_region{ addr, std::vector<std::uint8_t>(size, 0) };
 
-	return { };
+	return status::success;
 }
 
 emu::status emu::cpu::read_mem(const addr_t addr, const std::span<std::uint8_t> buf) const
@@ -89,7 +93,7 @@ emu::status emu::cpu::read_mem(const addr_t addr, const std::span<std::uint8_t> 
 
 	if (!rgn)
 	{
-		return { };
+		return status::invalid_mem;
 	}
 
 	const auto off = rgn->offset_of(addr);
@@ -97,12 +101,12 @@ emu::status emu::cpu::read_mem(const addr_t addr, const std::span<std::uint8_t> 
 
 	if (rgn->size() < end_off)
 	{
-		return { };
+		return status::invalid_mem;
 	}
 
 	std::memcpy(buf.data(), rgn->data.data() + off, buf.size());
 
-	return { };
+	return status::success;
 }
 
 emu::status emu::cpu::write_mem(const addr_t addr, const std::span<const std::uint8_t> buf)
@@ -111,7 +115,7 @@ emu::status emu::cpu::write_mem(const addr_t addr, const std::span<const std::ui
 
 	if (!rgn)
 	{
-		return { };
+		return status::invalid_mem;
 	}
 
 	const auto off = rgn->offset_of(addr);
@@ -119,12 +123,12 @@ emu::status emu::cpu::write_mem(const addr_t addr, const std::span<const std::ui
 
 	if (rgn->size() < end_off)
 	{
-		return { };
+		return status::invalid_mem;
 	}
 
 	std::memcpy(rgn->data.data() + off, buf.data(), buf.size());
 
-	return { };
+	return status::success;
 }
 
 emu::rgn_ref_const emu::cpu::find_rgn_const(const addr_t addr, const std::size_t s) const
