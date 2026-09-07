@@ -43,7 +43,11 @@ emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 			break;
 		}
 
-		set_pc(curr_pc + insn->size);
+		const std::size_t insn_len = insn->size;
+
+		hooks_.on_exec(addr, insn_len);
+
+		set_pc(curr_pc + insn_len);
 
 		result = execute_insn(proc, *insn);
 
