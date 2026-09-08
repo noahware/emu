@@ -2,7 +2,6 @@
 #include "defs.hpp"
 #include <capstone/capstone.h>
 #include <concepts>
-#include <expected>
 #include <span>
 #include <map>
 #include <vector>
@@ -42,18 +41,7 @@ namespace emu
 
 	protected:
 		bool pc_changed_ = false;
-		hooks hooks_;
-
-		template <class T>
-			requires std::is_trivially_copyable_v<T>
-		[[nodiscard]] std::expected<T, status> read_mem(const cpu& proc, const addr_t addr)
-		{
-			T val;
-			auto result = read_mem(proc, addr, &val, sizeof(T));
-			if (result != status::success)
-				return std::unexpected(result);
-			return val;
-		}
+		hooks hooks_ = { };
 
 		status read_mem(const cpu& proc, addr_t addr, std::span<std::uint8_t> buf) const;
 		status read_mem(const cpu& proc, addr_t addr, void* buf, std::size_t size) const;

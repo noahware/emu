@@ -16,6 +16,7 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_BLR: return handle_blr(proc, insn);
 		case ARM64_INS_LDP: return handle_ldp(proc, insn);
 		case ARM64_INS_STP: return handle_stp(proc, insn);
+		case ARM64_INS_CMP: return handle_cmp(proc, insn);
 		default:            return status::unhandled_insn;
 	}
 }
