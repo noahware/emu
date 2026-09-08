@@ -16,8 +16,9 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_BLR: return handle_blr(proc, insn);
 		case ARM64_INS_LDP: return handle_ldp(proc, insn);
 		case ARM64_INS_STP: return handle_stp(proc, insn);
-		case ARM64_INS_CMP: return handle_cmp(proc, insn);
-		default:            return status::unhandled_insn;
+		case ARM64_INS_CMP:  return handle_cmp(proc, insn);
+		case ARM64_INS_CSEL: return handle_csel(proc, insn);
+		default:             return status::unhandled_insn;
 	}
 }
 
@@ -242,5 +243,18 @@ emu::status emu::arm64_core::handle_cmp(cpu& proc, const cs_insn& insn)
 	state_.flags.c = b <= a;
 	state_.flags.v = (((a ^ b) & (a ^ result)) >> shift) & 1;
 
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_csel(cpu& proc, const cs_insn& insn)
+{
+	const auto& arm_insn = insn.detail->arm64;
+	const auto& ops = arm_insn.operands;
+
+	const std::uint64_t val = state_.flags.check(arm_insn.cc)
+		? reg(ops[1].reg)
+		: reg(ops[2].reg);
+
+	set_reg(ops[0].reg, val);
 	return status::success;
 }
