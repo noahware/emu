@@ -228,5 +228,8 @@ namespace emu
 		status handle_csel(cpu& proc, const cs_insn& insn);
 		status handle_adr(cpu& proc, const cs_insn& insn);
 		status handle_adrp(cpu& proc, const cs_insn& insn);
+		status handle_and(cpu& proc, const cs_insn& insn);
+		status handle_orr(cpu& proc, const cs_insn& insn);
+		status handle_eor(cpu& proc, const cs_insn& insn);
 	};
 }

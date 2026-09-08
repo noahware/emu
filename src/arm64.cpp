@@ -282,3 +282,45 @@ emu::status emu::arm64_core::handle_adrp(cpu& proc, const cs_insn& insn)
 
 	return status::success;
 }
+
+emu::status emu::arm64_core::handle_and(cpu& proc, const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+	const arm64_reg dest = ops[0].reg;
+
+	const std::uint64_t x_val = reg(ops[1].reg);
+	const arm64_widest_reg y_val = ops[2].type == ARM64_OP_REG
+		? reg(ops[2].reg)
+		: arm64_widest_reg(static_cast<std::uint64_t>(ops[2].imm));
+
+	set_reg(dest, x_val & y_val);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_orr(cpu& proc, const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+	const arm64_reg dest = ops[0].reg;
+
+	const std::uint64_t x_val = reg(ops[1].reg);
+	const arm64_widest_reg y_val = ops[2].type == ARM64_OP_REG
+		? reg(ops[2].reg)
+		: arm64_widest_reg(static_cast<std::uint64_t>(ops[2].imm));
+
+	set_reg(dest, x_val | y_val);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_eor(cpu& proc, const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+	const arm64_reg dest = ops[0].reg;
+
+	const std::uint64_t x_val = reg(ops[1].reg);
+	const arm64_widest_reg y_val = ops[2].type == ARM64_OP_REG
+		? reg(ops[2].reg)
+		: arm64_widest_reg(static_cast<std::uint64_t>(ops[2].imm));
+
+	set_reg(dest, x_val ^ y_val);
+	return status::success;
+}
