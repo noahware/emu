@@ -24,6 +24,7 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_CSEL: return handle_csel(proc, insn);
 		case ARM64_INS_ADR:  return handle_adr(proc, insn);
 		case ARM64_INS_ADRP: return handle_adrp(proc, insn);
+		case ARM64_INS_NOP:  return status::success;
 		default:             return status::unhandled_insn;
 	}
 }
