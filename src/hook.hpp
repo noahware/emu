@@ -13,6 +13,7 @@ namespace emu
 	public:
 		using handle = std::size_t;
 		using mem_cb = std::function<void(addr_t addr, std::size_t size, mem_prot prot)>;
+		using insn_cb = std::function<bool(addr_t addr)>; // return true = skip insn
 
 		handle add_mem(const addr_t start_addr, const addr_t end_addr, const mem_prot prot, mem_cb cb)
 		{
@@ -26,6 +27,17 @@ namespace emu
 				on_write_.push_back(hk);
 			if (prot & prot_exec)
 				on_exec_.push_back(hk);
+
+			return hk->handle;
+		}
+
+		handle add_insn(const addr_t start_addr, const addr_t end_addr, const arm64_insn mnemonic, insn_cb cb)
+		{
+			std::unique_lock lock(mutex_);
+
+			const auto hk = std::make_shared<insn_hk>(free_index_++, start_addr, end_addr, mnemonic, std::move(cb));
+
+			on_insn_.push_back(hk);
 
 			return hk->handle;
 		}
@@ -75,24 +87,44 @@ namespace emu
 			}
 		}
 
+		// returns true = skip insn
+		bool on_insn(const cs_insn& insn, const addr_t addr) const
+		{
+			std::shared_lock lock(mutex_);
+
+			bool skip = false;
+
+			for (const auto& hk : on_insn_)
+			{
+				if (insn.id != hk->mnemonic || !hk->in_range(addr))
+				{
+					continue;
+				}
+
+				skip |= hk->cb(addr);
+			}
+
+			return skip;
+		}
+
 		void remove(const handle h)
 		{
 			std::unique_lock lock(mutex_);
 
-			auto pred = [h](const std::shared_ptr<mem_hk>& hk) { return hk->handle == h; };
+			auto pred = [h](const std::shared_ptr<base_hk>& hk) { return hk->handle == h; };
 
 			std::erase_if(on_read_, pred);
 			std::erase_if(on_write_, pred);
 			std::erase_if(on_exec_, pred);
+			std::erase_if(on_insn_, pred);
 		}
 
 	protected:
-		struct mem_hk
+		struct base_hk
 		{
 			handle handle;
 			addr_t start;
 			addr_t end;
-			mem_cb cb;
 
 			[[nodiscard]] bool in_range(const addr_t addr) const noexcept
 			{
@@ -100,11 +132,29 @@ namespace emu
 			}
 		};
 
+		struct mem_hk : base_hk
+		{
+			mem_hk(const hooks::handle h, const addr_t s, const addr_t e, mem_cb c)
+				:	base_hk{ h, s, e }, cb(std::move(c)) {}
+
+			mem_cb cb;
+		};
+		
+		struct insn_hk : base_hk
+		{
+			insn_hk(const hooks::handle h, const addr_t s, const addr_t e, const arm64_insn m, insn_cb c)
+				:	base_hk{ h, s, e }, mnemonic(m), cb(std::move(c)) { }
+
+			arm64_insn mnemonic;
+			insn_cb cb;
+		};
+
 		handle free_index_ = 0;
 
 		std::vector<std::shared_ptr<mem_hk>> on_read_;
 		std::vector<std::shared_ptr<mem_hk>> on_write_;
 		std::vector<std::shared_ptr<mem_hk>> on_exec_;
+		std::vector<std::shared_ptr<insn_hk>> on_insn_;
 
 		mutable std::shared_mutex mutex_;
 	};

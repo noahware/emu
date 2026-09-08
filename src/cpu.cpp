@@ -48,10 +48,14 @@ emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 		hooks_.on_exec(curr_pc, insn_len);
 
 		pc_changed_ = false;
-		result = execute_insn(proc, *insn);
 
-		if (result.failed())
-			break;
+		if (!hooks_.on_insn(*insn, curr_pc))
+		{
+			result = execute_insn(proc, *insn);
+
+			if (result.failed())
+				break;
+		}
 
 		if (!pc_changed_)
 			set_pc(curr_pc + insn_len);
@@ -215,6 +219,19 @@ emu::cpu::hook_handle emu::cpu::hook_mem(const addr_t start_addr, const addr_t e
 
 	for (auto& core : cores_)
 		handles.push_back(core->hook_mem(start_addr, end_addr, prot, cb));
+
+	return handles;
+}
+
+emu::cpu::hook_handle emu::cpu::hook_insn(const addr_t start_addr, const addr_t end_addr, const arm64_insn mnemonic, hooks::insn_cb cb)
+{
+	std::shared_lock lock(cores_mutex_);
+
+	hook_handle handles;
+	handles.reserve(cores_.size());
+
+	for (auto& core : cores_)
+		handles.push_back(core->hook_insn(start_addr, end_addr, mnemonic, cb));
 
 	return handles;
 }

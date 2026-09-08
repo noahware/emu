@@ -33,6 +33,15 @@ int main()
         LOG("buffers are NOT equal");
     }
 
+    proc.hook_insn(addr, addr + size, ARM64_INS_B,
+        [](const emu::addr_t addr_) -> bool
+        {
+            LOG("b (jump) is being executed at 0x{:X}", addr_);
+
+            return true; // true == skip insn
+        }
+    );
+
     std::array<std::uint8_t, 20> stub = {
         0x1F, 0x00, 0x01, 0xEB, // cmp x0, x1
         0x60, 0x00, 0x00, 0x54, // b.eq end

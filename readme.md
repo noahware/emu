@@ -65,6 +65,21 @@ proc.hook_mem(addr, addr + size, emu::prot_all, // monitors prot_read, prot_writ
 );
 ```
 
+# Hooking instructions
+
+If true is returned from the callback, then the instruction will be skipped (goes to next program counter). If false is returned, then the instruction will be executed.
+
+```c++
+proc.hook_insn(addr, addr + size, ARM64_INS_B, // monitors B (jump) instruction
+    [](const emu::addr_t addr_) -> bool
+    {
+        LOG("b (jump) is being executed at 0x{:X}", addr_);
+
+        return true; // true == skip insn
+    }
+);
+```
+
 ## Running a CPU core
 
 ```c++
