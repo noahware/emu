@@ -142,5 +142,6 @@ namespace emu
 		status handle_blr(cpu& proc, const cs_insn& insn);
 		status handle_ldp(cpu& proc, const cs_insn& insn);
 		status handle_stp(cpu& proc, const cs_insn& insn);
+		status handle_cmp(cpu& proc, const cs_insn& insn);
 	};
 }

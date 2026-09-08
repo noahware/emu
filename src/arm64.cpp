@@ -209,3 +209,34 @@ emu::status emu::arm64_core::handle_stp(cpu& proc, const cs_insn& insn)
 
 	return status::success;
 }
+
+emu::status emu::arm64_core::handle_cmp(cpu& proc, const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+
+	const std::uint64_t a = reg(ops[0].reg);
+	const std::uint64_t b = ops[1].type == ARM64_OP_REG
+		? reg(ops[1].reg)
+		: static_cast<uint64_t>(ops[1].imm);
+
+	std::size_t shift;
+	std::uint64_t result;
+
+	if (arm64_state::is_x_reg(ops[0].reg))
+	{
+		result = a - b;
+		shift = 63;
+	}
+	else
+	{
+		result = static_cast<std::uint32_t>(a) - static_cast<std::uint32_t>(b);
+		shift = 31;
+	}
+
+	state_.flags.z = result == 0;
+	state_.flags.n = (result >> shift) & 1;
+	state_.flags.c = b <= a;
+	state_.flags.v = (((a ^ b) & (a ^ result)) >> shift) & 1;
+
+	return status::success;
+}
