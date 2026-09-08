@@ -3,11 +3,20 @@
 
 namespace emu
 {
+	struct arm64_flags
+	{
+		std::uint8_t n : 1;
+		std::uint8_t z : 1;
+		std::uint8_t c : 1;
+		std::uint8_t v : 1;
+	};
+
 	struct arm64_state
 	{
 		std::uint64_t x[31];
 		std::uint64_t sp;
 		std::uint64_t pc;
+		arm64_flags flags;
 
 		[[nodiscard]] static bool is_x_reg(const arm64_reg reg)
 		{
