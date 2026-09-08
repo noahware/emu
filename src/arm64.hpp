@@ -211,12 +211,19 @@ namespace emu
 		arm64_state state_ = { };
 
 		status execute_insn(cpu& proc, const cs_insn& insn) override;
+		[[nodiscard]] arm64_widest_reg op_non_mem(const cs_arm64_op& op) const;
+
+		status handle_binop(const cs_insn& insn, auto op)
+		{
+			const auto& ops = insn.detail->arm64.operands;
+			set_reg(ops[0].reg, op(static_cast<std::uint64_t>(reg(ops[1].reg)),
+				static_cast<std::uint64_t>(op_non_mem(ops[2]))));
+			return status::success;
+		}
 
 		status handle_ldr(cpu& proc, const cs_insn& insn);
 		status handle_str(cpu& proc, const cs_insn& insn);
 		status handle_mov(cpu& proc, const cs_insn& insn);
-		status handle_add(cpu& proc, const cs_insn& insn);
-		status handle_sub(cpu& proc, const cs_insn& insn);
 		status handle_ret(cpu& proc, const cs_insn& insn);
 		status handle_b(cpu& proc, const cs_insn& insn);
 		status handle_br(cpu& proc, const cs_insn& insn);
@@ -228,8 +235,5 @@ namespace emu
 		status handle_csel(cpu& proc, const cs_insn& insn);
 		status handle_adr(cpu& proc, const cs_insn& insn);
 		status handle_adrp(cpu& proc, const cs_insn& insn);
-		status handle_and(cpu& proc, const cs_insn& insn);
-		status handle_orr(cpu& proc, const cs_insn& insn);
-		status handle_eor(cpu& proc, const cs_insn& insn);
 	};
 }

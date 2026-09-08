@@ -1,4 +1,5 @@
 #include "arm64.hpp"
+#include <functional>
 
 emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 {
@@ -7,8 +8,11 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_LDR: return handle_ldr(proc, insn);
 		case ARM64_INS_STR: return handle_str(proc, insn);
 		case ARM64_INS_MOV: return handle_mov(proc, insn);
-		case ARM64_INS_ADD: return handle_add(proc, insn);
-		case ARM64_INS_SUB: return handle_sub(proc, insn);
+		case ARM64_INS_ADD: return handle_binop(insn, std::plus{});
+		case ARM64_INS_SUB: return handle_binop(insn, std::minus{});
+		case ARM64_INS_AND: return handle_binop(insn, std::bit_and{});
+		case ARM64_INS_ORR: return handle_binop(insn, std::bit_or{});
+		case ARM64_INS_EOR: return handle_binop(insn, std::bit_xor{});
 		case ARM64_INS_RET: return handle_ret(proc, insn);
 		case ARM64_INS_B:   return handle_b(proc, insn);
 		case ARM64_INS_BR:  return handle_br(proc, insn);
@@ -18,8 +22,17 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_STP: return handle_stp(proc, insn);
 		case ARM64_INS_CMP:  return handle_cmp(proc, insn);
 		case ARM64_INS_CSEL: return handle_csel(proc, insn);
+		case ARM64_INS_ADR:  return handle_adr(proc, insn);
+		case ARM64_INS_ADRP: return handle_adrp(proc, insn);
 		default:             return status::unhandled_insn;
 	}
+}
+
+emu::arm64_widest_reg emu::arm64_core::op_non_mem(const cs_arm64_op& op) const
+{
+	return op.type == ARM64_OP_REG
+		       ? reg(op.reg)
+		       : arm64_widest_reg(static_cast<std::uint64_t>(op.imm));
 }
 
 emu::status emu::arm64_core::handle_ldr(cpu& proc, const cs_insn& insn)
@@ -66,41 +79,10 @@ emu::status emu::arm64_core::handle_mov(cpu& proc, const cs_insn& insn)
 	const auto& ops = insn.detail->arm64.operands;
 	const arm64_reg dest = ops[0].reg;
 
-	const arm64_widest_reg src_val = ops[1].type == ARM64_OP_REG
-		? reg(ops[1].reg)
-		: arm64_widest_reg(static_cast<std::uint64_t>(ops[1].imm));
-
-	set_reg(dest, src_val);
+	set_reg(dest, op_non_mem(ops[1]));
 	return status::success;
 }
 
-emu::status emu::arm64_core::handle_add(cpu& proc, const cs_insn& insn)
-{
-	const auto& ops = insn.detail->arm64.operands;
-	const arm64_reg dest = ops[0].reg;
-
-	const std::uint64_t x_val = reg(ops[1].reg);
-	const arm64_widest_reg y_val = ops[2].type == ARM64_OP_REG
-		? reg(ops[2].reg)
-		: arm64_widest_reg(static_cast<std::uint64_t>(ops[2].imm));
-
-	set_reg(dest, x_val + y_val);
-	return status::success;
-}
-
-emu::status emu::arm64_core::handle_sub(cpu& proc, const cs_insn& insn)
-{
-	const auto& ops = insn.detail->arm64.operands;
-	const arm64_reg dest = ops[0].reg;
-
-	const std::uint64_t x_val = reg(ops[1].reg);
-	const arm64_widest_reg y_val = ops[2].type == ARM64_OP_REG
-		? reg(ops[2].reg)
-		: arm64_widest_reg(static_cast<std::uint64_t>(ops[2].imm));
-
-	set_reg(dest, x_val - y_val);
-	return status::success;
-}
 
 emu::status emu::arm64_core::handle_ret(cpu& proc, const cs_insn& insn)
 {
@@ -220,9 +202,7 @@ emu::status emu::arm64_core::handle_cmp(cpu& proc, const cs_insn& insn)
 	const auto& ops = insn.detail->arm64.operands;
 
 	const std::uint64_t a = reg(ops[0].reg);
-	const std::uint64_t b = ops[1].type == ARM64_OP_REG
-		? static_cast<std::uint64_t>(reg(ops[1].reg))
-		: static_cast<std::uint64_t>(ops[1].imm);
+	const std::uint64_t b = op_non_mem(ops[1]);
 
 	std::size_t shift;
 	std::uint64_t result;
@@ -283,44 +263,3 @@ emu::status emu::arm64_core::handle_adrp(cpu& proc, const cs_insn& insn)
 	return status::success;
 }
 
-emu::status emu::arm64_core::handle_and(cpu& proc, const cs_insn& insn)
-{
-	const auto& ops = insn.detail->arm64.operands;
-	const arm64_reg dest = ops[0].reg;
-
-	const std::uint64_t x_val = reg(ops[1].reg);
-	const arm64_widest_reg y_val = ops[2].type == ARM64_OP_REG
-		? reg(ops[2].reg)
-		: arm64_widest_reg(static_cast<std::uint64_t>(ops[2].imm));
-
-	set_reg(dest, x_val & y_val);
-	return status::success;
-}
-
-emu::status emu::arm64_core::handle_orr(cpu& proc, const cs_insn& insn)
-{
-	const auto& ops = insn.detail->arm64.operands;
-	const arm64_reg dest = ops[0].reg;
-
-	const std::uint64_t x_val = reg(ops[1].reg);
-	const arm64_widest_reg y_val = ops[2].type == ARM64_OP_REG
-		? reg(ops[2].reg)
-		: arm64_widest_reg(static_cast<std::uint64_t>(ops[2].imm));
-
-	set_reg(dest, x_val | y_val);
-	return status::success;
-}
-
-emu::status emu::arm64_core::handle_eor(cpu& proc, const cs_insn& insn)
-{
-	const auto& ops = insn.detail->arm64.operands;
-	const arm64_reg dest = ops[0].reg;
-
-	const std::uint64_t x_val = reg(ops[1].reg);
-	const arm64_widest_reg y_val = ops[2].type == ARM64_OP_REG
-		? reg(ops[2].reg)
-		: arm64_widest_reg(static_cast<std::uint64_t>(ops[2].imm));
-
-	set_reg(dest, x_val ^ y_val);
-	return status::success;
-}
