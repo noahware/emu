@@ -32,7 +32,21 @@ LOG("run returned with {}", status.to_string());
 ## Mapping memory
 
 ```c++
-proc.map_mem(addr, size);
+proc.map_mem(addr, size); // defaults to read, write, execute
+
+proc.map_mem(addr, prot_read | prot_write); // read, write
+```
+
+## Unmapping memory
+
+```c++
+proc.unmap_mem(addr, size);
+```
+
+## Changing memory protection
+
+```c++
+proc.prot_mem(addr, size, prot_read | prot_write | prot_exec);
 ```
 
 ## Reading memory
@@ -72,6 +86,20 @@ const emu::cpu::hook_handle handle = proc.hook_mem(addr, addr + size, emu::prot_
     [](const emu::addr_t addr_, const std::size_t size_, const emu::mem_prot prot)
     {
         LOG("{}-{} is being accessed with prot {}", addr_, addr_ + size_, static_cast<std::uint8_t>(prot));
+    }
+);
+```
+
+### Hooking invalid memory accesses
+
+```c++
+using uint64_limit = std::numeric_limits<std::uint64_t>;
+
+proc.hook_invalid_mem(uint64_limit::min(), uint64_limit::max(),
+    [](const emu::addr_t addr_, const std::optional<std::size_t> size_, const emu::mem_prot prot)
+    {
+        LOG("invalid mem accessed at {}-{} with prot {}", addr_, addr_ + size_.value_or(0),
+            static_cast<std::uint8_t>(prot));
     }
 );
 ```
