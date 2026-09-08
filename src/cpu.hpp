@@ -116,6 +116,7 @@ namespace emu
 
 		[[nodiscard]] mem_iter find_rgn_unlocked(addr_t addr);
 		[[nodiscard]] mem_iter_const find_rgn_unlocked(addr_t addr) const;
+		mem_iter split_rgn(mem_iter it, addr_t at);
 
 		mutable std::shared_mutex mem_mutex_;
 		std::map<addr_t, mem_region> mem_;
