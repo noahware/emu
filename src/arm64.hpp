@@ -241,6 +241,8 @@ namespace emu
 		status handle_store(cpu& proc, const cs_insn& insn, std::size_t access_size = 0);
 		status handle_mov(cpu& proc, const cs_insn& insn);
 		status handle_ret(cpu& proc, const cs_insn& insn);
+		status handle_cbz(const cs_insn& insn);
+		status handle_cbnz(const cs_insn& insn);
 		status handle_b(cpu& proc, const cs_insn& insn);
 		status handle_br(cpu& proc, const cs_insn& insn);
 		status handle_bl(cpu& proc, const cs_insn& insn);
