@@ -200,19 +200,22 @@ emu::status emu::cpu::unmap_mem(const addr_t addr, const std::size_t size)
 {
 	std::unique_lock lock(mem_mutex_);
 
-	auto it = find_rgn_unlocked(addr);
-	if (it == mem_.end() || !it->second.contains(addr + size - 1))
-		return status::invalid_mem;
-
 	const addr_t end_addr = addr + size;
+
+	auto it = find_rgn_unlocked(addr);
+	if (it == mem_.end())
+		return status::invalid_mem;
 
 	if (it->second.addr != addr)
 		it = split_rgn(it, addr);
 
-	if (it->second.end_addr() != end_addr)
-		split_rgn(it, end_addr);
+	while (it != mem_.end() && it->second.addr < end_addr)
+	{
+		if (it->second.end_addr() > end_addr)
+			split_rgn(it, end_addr);
 
-	mem_.erase(it);
+		it = mem_.erase(it);
+	}
 
 	return status::success;
 }
