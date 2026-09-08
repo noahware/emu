@@ -176,6 +176,55 @@ emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size, const m
 	return status::success;
 }
 
+emu::status emu::cpu::unmap_mem(const addr_t addr, const std::size_t size)
+{
+	auto rgn = find_rgn(addr, size);
+
+	if (!rgn)
+		return status::invalid_mem;
+
+	const addr_t end_addr = addr + size;
+	const addr_t rgn_start = rgn->addr;
+	const addr_t rgn_end = rgn->end_addr();
+
+	if (rgn_start == addr)
+	{
+		if (rgn->size() == size)
+		{
+			mem_.erase(rgn_start);
+			return status::success;
+		}
+
+		rgn->data.erase(rgn->data.begin(), rgn->data.begin() + size);
+		rgn->addr = end_addr;
+
+		auto node = mem_.extract(rgn_start);
+		node.key() = end_addr;
+		mem_.insert(std::move(node));
+		return status::success;
+	}
+
+	if (end_addr == rgn_end)
+	{
+		rgn->data.resize(addr - rgn_start);
+		return status::success;
+	}
+
+	const auto prefix_size = static_cast<std::ptrdiff_t>(addr - rgn_start);
+	const auto suffix_offset = static_cast<std::ptrdiff_t>(end_addr - rgn_start);
+
+	mem_region tail{
+		end_addr,
+		std::vector(rgn->data.begin() + suffix_offset, rgn->data.end()),
+		rgn->prot
+	};
+
+	rgn->data.resize(prefix_size);
+	mem_[end_addr] = std::move(tail);
+
+	return status::success;
+}
+
 emu::status emu::cpu::read_mem(const addr_t addr, const std::span<std::uint8_t> buf, const bool enforce_prot) const
 {
 	std::size_t offset = 0;

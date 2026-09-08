@@ -71,6 +71,7 @@ namespace emu
 		using hook_handle = std::vector<hooks::handle>;
 
 		status map_mem(addr_t addr, std::size_t size, mem_prot prot = prot_all);
+		status unmap_mem(addr_t addr, std::size_t size);
 		status read_mem(addr_t addr, std::span<std::uint8_t> buf, bool enforce_prot = false) const;
 		status write_mem(addr_t addr, std::span<const std::uint8_t> buf, bool enforce_prot = false);
 
