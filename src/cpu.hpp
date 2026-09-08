@@ -110,6 +110,12 @@ namespace emu
 		}
 
 	private:
+		using mem_iter = std::map<addr_t, mem_region>::iterator;
+		using mem_iter_const = std::map<addr_t, mem_region>::const_iterator;
+
+		[[nodiscard]] mem_iter find_rgn_unlocked(addr_t addr);
+		[[nodiscard]] mem_iter_const find_rgn_unlocked(addr_t addr) const;
+
 		mutable std::shared_mutex mem_mutex_;
 		std::map<addr_t, mem_region> mem_;
 

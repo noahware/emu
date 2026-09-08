@@ -104,50 +104,72 @@ emu::status emu::cpu_core::write_mem(cpu& proc, const addr_t addr, const void* c
 	return write_mem(proc, addr, std::span(static_cast<const std::uint8_t*>(buf), size));
 }
 
+emu::cpu::mem_iter emu::cpu::find_rgn_unlocked(const addr_t addr)
+{
+	auto it = mem_.upper_bound(addr);
+	if (it != mem_.begin())
+	{
+		--it;
+		if (it->second.contains(addr))
+			return it;
+	}
+	return mem_.end();
+}
+
+emu::cpu::mem_iter_const emu::cpu::find_rgn_unlocked(const addr_t addr) const
+{
+	auto it = mem_.upper_bound(addr);
+	if (it != mem_.begin())
+	{
+		--it;
+		if (it->second.contains(addr))
+			return it;
+	}
+	return mem_.end();
+}
+
 emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size, const mem_prot prot)
 {
-	if (find_rgn(addr))
-	{
+	std::unique_lock lock(mem_mutex_);
+
+	if (find_rgn_unlocked(addr) != mem_.end())
 		return status::invalid_mem;
-	}
 
 	const auto next_rgn_addr = addr + size;
 
-	const auto prev_rgn = find_rgn(addr - 1);
-	const auto next_rgn = find_rgn(next_rgn_addr);
+	auto prev_it = (addr > 0) ? find_rgn_unlocked(addr - 1) : mem_.end();
+	auto next_it = find_rgn_unlocked(next_rgn_addr);
 
-	if (prev_rgn && next_rgn && prev_rgn->prot == next_rgn->prot && prev_rgn->prot == prot)
+	if (prev_it != mem_.end() && next_it != mem_.end()
+		&& prev_it->second.prot == prot && next_it->second.prot == prot)
 	{
-		prev_rgn->data.resize(prev_rgn->size() + size);
-		prev_rgn->data.insert(prev_rgn->data.end(), next_rgn->data.begin(), next_rgn->data.end());
+		prev_it->second.data.resize(prev_it->second.size() + size);
+		prev_it->second.data.insert(prev_it->second.data.end(),
+			next_it->second.data.begin(), next_it->second.data.end());
 
-		mem_.erase(next_rgn_addr);
+		mem_.erase(next_it);
 
 		return status::success;
 	}
 
-	if (prev_rgn && prev_rgn->prot == prot)
+	if (prev_it != mem_.end() && prev_it->second.prot == prot)
 	{
-		prev_rgn->data.resize(prev_rgn->size() + size);
+		prev_it->second.data.resize(prev_it->second.size() + size);
 
 		return status::success;
 	}
 
-	if (next_rgn && next_rgn->prot == prot)
+	if (next_it != mem_.end() && next_it->second.prot == prot)
 	{
-		const addr_t old_addr = next_rgn->addr;
+		next_it->second.addr = addr;
+		next_it->second.data.insert(next_it->second.data.begin(), size, 0);
 
-		next_rgn->addr = addr;
-		next_rgn->data.insert(next_rgn->data.begin(), size, 0);
-
-		auto node = mem_.extract(old_addr);
+		auto node = mem_.extract(next_it);
 		node.key() = addr;
 		mem_.insert(std::move(node));
 
 		return status::success;
 	}
-
-	std::unique_lock lock(mem_mutex_);
 
 	mem_[addr] = mem_region{ addr, std::vector<std::uint8_t>(size, 0), prot };
 
@@ -202,15 +224,9 @@ emu::rgn_ref_const emu::cpu::find_rgn_const(const addr_t addr, const std::size_t
 {
 	std::shared_lock lock(mem_mutex_);
 
-	auto it = mem_.upper_bound(addr);
-	if (it != mem_.begin())
-	{
-		--it;
-		if (it->second.contains(addr) && (!s || it->second.contains(addr + s)))
-		{
-			return rgn_ref_const{ &it->second, std::move(lock) };
-		}
-	}
+	auto it = find_rgn_unlocked(addr);
+	if (it != mem_.end() && (!s || it->second.contains(addr + s - 1)))
+		return rgn_ref_const{ &it->second, std::move(lock) };
 
 	return { };
 }
@@ -219,15 +235,9 @@ emu::rgn_ref_mut emu::cpu::find_rgn_mut(const addr_t addr, const std::size_t s)
 {
 	std::unique_lock lock(mem_mutex_);
 
-	auto it = mem_.upper_bound(addr);
-	if (it != mem_.begin())
-	{
-		--it;
-		if (it->second.contains(addr) && (!s || it->second.contains(addr + s)))
-		{
-			return rgn_ref_mut{ &it->second, std::move(lock) };
-		}
-	}
+	auto it = find_rgn_unlocked(addr);
+	if (it != mem_.end() && (!s || it->second.contains(addr + s - 1)))
+		return rgn_ref_mut{ &it->second, std::move(lock) };
 
 	return { };
 }
