@@ -220,6 +220,31 @@ emu::status emu::cpu::unmap_mem(const addr_t addr, const std::size_t size)
 	return status::success;
 }
 
+emu::status emu::cpu::prot_mem(const addr_t addr, const std::size_t size, const mem_prot prot)
+{
+	std::unique_lock lock(mem_mutex_);
+
+	const addr_t end_addr = addr + size;
+
+	auto it = find_rgn_unlocked(addr);
+	if (it == mem_.end())
+		return status::invalid_mem;
+
+	if (it->second.addr != addr)
+		it = split_rgn(it, addr);
+
+	while (it != mem_.end() && it->second.addr < end_addr)
+	{
+		if (it->second.end_addr() > end_addr)
+			split_rgn(it, end_addr);
+
+		it->second.prot = prot;
+		++it;
+	}
+
+	return status::success;
+}
+
 emu::status emu::cpu::read_mem(const addr_t addr, const std::span<std::uint8_t> buf, const bool enforce_prot) const
 {
 	std::size_t offset = 0;

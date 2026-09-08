@@ -72,6 +72,7 @@ namespace emu
 
 		status map_mem(addr_t addr, std::size_t size, mem_prot prot = prot_all);
 		status unmap_mem(addr_t addr, std::size_t size);
+		status prot_mem(addr_t addr, std::size_t size, mem_prot prot);
 		status read_mem(addr_t addr, std::span<std::uint8_t> buf, bool enforce_prot = false) const;
 		status write_mem(addr_t addr, std::span<const std::uint8_t> buf, bool enforce_prot = false);
 
