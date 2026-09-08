@@ -23,26 +23,28 @@ emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 	{
 		const addr_t curr_pc = pc();
 
-		const auto rgn = proc.find_rgn_const(curr_pc);
-
-		if (!rgn)
 		{
-			hooks_.on_invalid(curr_pc, {}, prot_exec);
+			const auto rgn = proc.find_rgn_const(curr_pc);
 
-			result = status::invalid_mem;
-			break;
-		}
+			if (!rgn)
+			{
+				hooks_.on_invalid(curr_pc, {}, prot_exec);
 
-		const auto pc_off = rgn->offset_of(curr_pc);
-		std::size_t remaining = rgn->size() - pc_off;
+				result = status::invalid_mem;
+				break;
+			}
 
-		const std::uint8_t* code = rgn->data_of(curr_pc);
-		std::uint64_t decode_addr = curr_pc;
+			const auto pc_off = rgn->offset_of(curr_pc);
+			std::size_t remaining = rgn->size() - pc_off;
 
-		if (!cs_disasm_iter(decoder_, &code, &remaining, &decode_addr, insn))
-		{
-			result = status::invalid_insn;
-			break;
+			const std::uint8_t* code = rgn->data_of(curr_pc);
+			std::uint64_t decode_addr = curr_pc;
+
+			if (!cs_disasm_iter(decoder_, &code, &remaining, &decode_addr, insn))
+			{
+				result = status::invalid_insn;
+				break;
+			}
 		}
 
 		const std::size_t insn_len = insn->size;
