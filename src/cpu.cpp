@@ -178,44 +178,56 @@ emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size, const m
 
 emu::status emu::cpu::read_mem(const addr_t addr, const std::span<std::uint8_t> buf, const bool enforce_prot) const
 {
-	const auto rgn = find_rgn(addr);
+	std::size_t offset = 0;
+	std::size_t size_left = buf.size();
 
-	if (!rgn || (enforce_prot && !rgn->can_read()))
+	while (offset < buf.size())
 	{
-		return status::invalid_mem;
+		const addr_t curr_addr = addr + offset;
+
+		const auto rgn = find_rgn(curr_addr);
+
+		if (!rgn || (enforce_prot && !rgn->can_read()))
+		{
+			return status::invalid_mem;
+		}
+
+		const auto rgn_off = rgn->offset_of(curr_addr);
+		const auto copy_size = std::min(rgn->size() - rgn_off, size_left);
+
+		std::memcpy(buf.data() + offset, rgn->data.data() + rgn_off, copy_size);
+
+		offset += copy_size;
+		size_left -= copy_size;
 	}
-
-	const auto off = rgn->offset_of(addr);
-	const auto end_off = off + buf.size();
-
-	if (rgn->size() < end_off)
-	{
-		return status::invalid_mem;
-	}
-
-	std::memcpy(buf.data(), rgn->data.data() + off, buf.size());
 
 	return status::success;
 }
 
 emu::status emu::cpu::write_mem(const addr_t addr, const std::span<const std::uint8_t> buf, const bool enforce_prot)
 {
-	const auto rgn = find_rgn(addr);
+	std::size_t offset = 0;
+	std::size_t size_left = buf.size();
 
-	if (!rgn || (enforce_prot && !rgn->can_write()))
+	while (offset < buf.size())
 	{
-		return status::invalid_mem;
+		const addr_t curr_addr = addr + offset;
+
+		const auto rgn = find_rgn(curr_addr);
+
+		if (!rgn || (enforce_prot && !rgn->can_write()))
+		{
+			return status::invalid_mem;
+		}
+
+		const auto rgn_off = rgn->offset_of(curr_addr);
+		const auto copy_size = std::min(rgn->size() - rgn_off, size_left);
+
+		std::memcpy(rgn->data.data() + rgn_off, buf.data() + offset, copy_size);
+
+		offset += copy_size;
+		size_left -= copy_size;
 	}
-
-	const auto off = rgn->offset_of(addr);
-	const auto end_off = off + buf.size();
-
-	if (rgn->size() < end_off)
-	{
-		return status::invalid_mem;
-	}
-
-	std::memcpy(rgn->data.data() + off, buf.data(), buf.size());
 
 	return status::success;
 }
