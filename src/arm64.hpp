@@ -27,6 +27,29 @@ namespace emu
 		[[nodiscard]] bool gt() const { return !z && n == v; }
 		[[nodiscard]] bool le() const { return z || n != v; }
 		[[nodiscard]] bool al() const { return true; }
+
+		[[nodiscard]] bool check(arm64_cc cc) const
+		{
+			switch (cc)
+			{
+				case ARM64_CC_EQ: return eq();
+				case ARM64_CC_NE: return ne();
+				case ARM64_CC_HS: return hs();
+				case ARM64_CC_LO: return lo();
+				case ARM64_CC_MI: return mi();
+				case ARM64_CC_PL: return pl();
+				case ARM64_CC_VS: return vs();
+				case ARM64_CC_VC: return vc();
+				case ARM64_CC_HI: return hi();
+				case ARM64_CC_LS: return ls();
+				case ARM64_CC_GE: return ge();
+				case ARM64_CC_LT: return lt();
+				case ARM64_CC_GT: return gt();
+				case ARM64_CC_LE: return le();
+				case ARM64_CC_AL: return true;
+				default:          return true;
+			}
+		}
 	};
 
 	struct arm64_state

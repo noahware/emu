@@ -112,7 +112,9 @@ emu::status emu::arm64_core::handle_ret(cpu& proc, const cs_insn& insn)
 
 emu::status emu::arm64_core::handle_b(cpu& proc, const cs_insn& insn)
 {
-	set_pc(insn.detail->arm64.operands[0].imm);
+	if (state_.flags.check(insn.detail->arm64.cc))
+		set_pc(insn.detail->arm64.operands[0].imm);
+
 	return status::success;
 }
 
