@@ -176,7 +176,7 @@ emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size, const m
 	return status::success;
 }
 
-emu::cpu::mem_iter emu::cpu::split_rgn(const mem_iter it, const addr_t at)
+emu::cpu::mem_iter emu::cpu::split_rgn(const mem_iter& it, const addr_t at)
 {
 	auto& rgn = it->second;
 
