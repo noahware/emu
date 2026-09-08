@@ -57,13 +57,13 @@ int main()
     core->set_reg(ARM64_REG_X0, 4);
     core->set_reg(ARM64_REG_X1, 5);
     core->run(proc, addr);
-    LOG("X2 value: {}", core->reg(ARM64_REG_X2));
+    LOG("X2 value: {}", core->reg<std::uint64_t>(ARM64_REG_X2));
 
     // matches:
     core->set_reg(ARM64_REG_X0, 6);
     core->set_reg(ARM64_REG_X1, 6);
     core->run(proc, addr);
-    LOG("X2 value: {}", core->reg(ARM64_REG_X2));
+    LOG("X2 value: {}", core->reg<std::uint64_t>(ARM64_REG_X2));
 
     return 0;
 }

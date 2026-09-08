@@ -1,5 +1,6 @@
 #pragma once
 #include "cpu.hpp"
+#include <cstring>
 
 namespace emu
 {
@@ -52,12 +53,27 @@ namespace emu
 		}
 	};
 
+	struct arm64_vec_reg
+	{
+		std::uint64_t d[2] = {};
+
+		arm64_vec_reg() = default;
+		arm64_vec_reg(const std::uint64_t val) : d{val, 0} {}
+		operator std::uint64_t() const { return d[0]; }
+
+		[[nodiscard]] std::uint8_t* data() { return reinterpret_cast<std::uint8_t*>(d); }
+		[[nodiscard]] const std::uint8_t* data() const { return reinterpret_cast<const std::uint8_t*>(d); }
+	};
+
+	using arm64_widest_reg = arm64_vec_reg;
+
 	struct arm64_state
 	{
 		std::uint64_t x[31];
 		std::uint64_t sp;
 		std::uint64_t pc;
 		arm64_flags flags;
+		arm64_vec_reg v[32];
 
 		[[nodiscard]] static bool is_x_reg(const arm64_reg reg)
 		{
@@ -69,46 +85,80 @@ namespace emu
 			return reg >= ARM64_REG_W0 && reg <= ARM64_REG_W28;
 		}
 
-		[[nodiscard]] static std::size_t reg_size_wx(const arm64_reg reg)
+		[[nodiscard]] static int gpr_index(const arm64_reg reg)
 		{
-			std::size_t size = 0;
-
-			if (is_w_reg(reg))
-				size = sizeof(std::uint32_t);
-			else if (is_x_reg(reg))
-				size = sizeof(std::uint64_t);
-
-			return size;
+			if (is_x_reg(reg)) return reg - ARM64_REG_X0;
+			if (is_w_reg(reg)) return reg - ARM64_REG_W0;
+			if (reg == ARM64_REG_X29 || reg == ARM64_REG_FP) return 29;
+			if (reg == ARM64_REG_X30 || reg == ARM64_REG_LR) return 30;
+			return -1;
 		}
 
-		[[nodiscard]] std::uint64_t reg(const arm64_reg reg) const
+		[[nodiscard]] static int vreg_index(const arm64_reg reg)
 		{
-			if (is_x_reg(reg))
-				return x[reg - ARM64_REG_X0];
-			if (is_w_reg(reg))
-				return static_cast<std::uint32_t>(x[reg - ARM64_REG_W0]);
-			if (reg == ARM64_REG_X29 || reg == ARM64_REG_FP)
-				return x[29];
-			if (reg == ARM64_REG_X30 || reg == ARM64_REG_LR)
-				return x[30];
+			if (reg >= ARM64_REG_Q0 && reg <= ARM64_REG_Q31) return reg - ARM64_REG_Q0;
+			if (reg >= ARM64_REG_D0 && reg <= ARM64_REG_D31) return reg - ARM64_REG_D0;
+			if (reg >= ARM64_REG_S0 && reg <= ARM64_REG_S31) return reg - ARM64_REG_S0;
+			if (reg >= ARM64_REG_H0 && reg <= ARM64_REG_H31) return reg - ARM64_REG_H0;
+			if (reg >= ARM64_REG_B0 && reg <= ARM64_REG_B31) return reg - ARM64_REG_B0;
+			return -1;
+		}
+
+		[[nodiscard]] static std::size_t reg_size(const arm64_reg reg)
+		{
+			if (gpr_index(reg) >= 0)
+				return is_w_reg(reg) ? 4 : 8;
 			if (reg == ARM64_REG_SP)
-				return sp;
+				return 8;
+
+			if (reg >= ARM64_REG_Q0 && reg <= ARM64_REG_Q31) return 16;
+			if (reg >= ARM64_REG_D0 && reg <= ARM64_REG_D31) return 8;
+			if (reg >= ARM64_REG_S0 && reg <= ARM64_REG_S31) return 4;
+			if (reg >= ARM64_REG_H0 && reg <= ARM64_REG_H31) return 2;
+			if (reg >= ARM64_REG_B0 && reg <= ARM64_REG_B31) return 1;
 
 			return 0;
 		}
 
-		void set_reg(const arm64_reg reg, const std::uint64_t val)
+		[[nodiscard]] arm64_widest_reg reg(const arm64_reg reg) const
 		{
-			if (reg >= ARM64_REG_X0 && reg <= ARM64_REG_X28)
-				x[reg - ARM64_REG_X0] = val;
-			else if (reg >= ARM64_REG_W0 && reg <= ARM64_REG_W28)
-				x[reg - ARM64_REG_W0] = static_cast<std::uint32_t>(val);
-			else if (reg == ARM64_REG_X29 || reg == ARM64_REG_FP)
-				x[29] = val;
-			else if (reg == ARM64_REG_X30 || reg == ARM64_REG_LR)
-				x[30] = val;
-			else if (reg == ARM64_REG_SP)
+			const int gi = gpr_index(reg);
+			if (gi >= 0)
+				return is_w_reg(reg) ? static_cast<std::uint32_t>(x[gi]) : x[gi];
+			if (reg == ARM64_REG_SP)
+				return sp;
+
+			const int vi = vreg_index(reg);
+			if (vi >= 0)
+			{
+				arm64_widest_reg r = {};
+				std::memcpy(r.data(), v[vi].data(), reg_size(reg));
+				return r;
+			}
+
+			return {};
+		}
+
+		void set_reg(const arm64_reg reg, const arm64_widest_reg val)
+		{
+			const int gi = gpr_index(reg);
+			if (gi >= 0)
+			{
+				x[gi] = is_w_reg(reg) ? static_cast<std::uint32_t>(val) : static_cast<std::uint64_t>(val);
+				return;
+			}
+			if (reg == ARM64_REG_SP)
+			{
 				sp = val;
+				return;
+			}
+
+			const int vi = vreg_index(reg);
+			if (vi >= 0)
+			{
+				v[vi] = {};
+				std::memcpy(v[vi].data(), val.data(), reg_size(reg));
+			}
 		}
 
 		[[nodiscard]] addr_t mem_op_addr(const arm64_op_mem& mem) const
@@ -138,12 +188,18 @@ namespace emu
 			state_.pc = new_pc;
 		}
 
-		[[nodiscard]] std::uint64_t reg(const arm64_reg reg) const
+		[[nodiscard]] arm64_widest_reg reg(const arm64_reg reg) const
 		{
 			return state_.reg(reg);
 		}
 
-		void set_reg(const arm64_reg reg, const std::uint64_t val)
+		template <typename T>
+		[[nodiscard]] T reg(const arm64_reg reg) const
+		{
+			return static_cast<T>(state_.reg(reg));
+		}
+
+		void set_reg(const arm64_reg reg, const arm64_widest_reg val)
 		{
 			return state_.set_reg(reg, val);
 		}
