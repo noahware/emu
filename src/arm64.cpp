@@ -34,9 +34,39 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 
 emu::arm64_widest_reg emu::arm64_core::op_non_mem(const cs_arm64_op& op) const
 {
-	return op.type == ARM64_OP_REG
-		       ? reg(op.reg)
-		       : arm64_widest_reg(static_cast<std::uint64_t>(op.imm));
+	std::uint64_t val = op.type == ARM64_OP_REG
+		? reg<std::uint64_t>(op.reg)
+		: static_cast<std::uint64_t>(op.imm);
+
+	if (op.ext != ARM64_EXT_INVALID)
+	{
+		switch (op.ext)
+		{
+			case ARM64_EXT_UXTB: val = static_cast<std::uint8_t>(val);  break;
+			case ARM64_EXT_UXTH: val = static_cast<std::uint16_t>(val); break;
+			case ARM64_EXT_UXTW: val = static_cast<std::uint32_t>(val); break;
+			case ARM64_EXT_UXTX: break;
+			case ARM64_EXT_SXTB: val = static_cast<std::uint64_t>(static_cast<std::int8_t>(val));  break;
+			case ARM64_EXT_SXTH: val = static_cast<std::uint64_t>(static_cast<std::int16_t>(val)); break;
+			case ARM64_EXT_SXTW: val = static_cast<std::uint64_t>(static_cast<std::int32_t>(val)); break;
+			case ARM64_EXT_SXTX: break;
+			default: break;
+		}
+		val <<= op.shift.value;
+	}
+	else if (op.shift.type != ARM64_SFT_INVALID)
+	{
+		switch (op.shift.type)
+		{
+			case ARM64_SFT_LSL: val <<= op.shift.value; break;
+			case ARM64_SFT_LSR: val >>= op.shift.value; break;
+			case ARM64_SFT_ASR: val = static_cast<std::uint64_t>(static_cast<std::int64_t>(val) >> op.shift.value); break;
+			case ARM64_SFT_ROR: val = (val >> op.shift.value) | (val << (64 - op.shift.value)); break;
+			default: break;
+		}
+	}
+
+	return arm64_widest_reg(val);
 }
 
 emu::status emu::arm64_core::handle_ldr(cpu& proc, const cs_insn& insn)
