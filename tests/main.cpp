@@ -42,13 +42,25 @@ int main()
         }
     );
 
-    std::array<std::uint8_t, 20> stub = {
+    using uint64_limit = std::numeric_limits<std::uint64_t>;
+
+    proc.hook_invalid_mem(uint64_limit::min(), uint64_limit::max(),
+        [](const emu::addr_t addr_, const std::optional<std::size_t> size_, const emu::mem_prot prot)
+        {
+            LOG("invalid mem accessed at {}-{} with prot {}", addr_, addr_ + size_.value_or(0),
+                static_cast<std::uint8_t>(prot));
+        }
+    );
+
+    std::array<std::uint8_t, 28> stub = {
         0x1F, 0x00, 0x01, 0xEB, // cmp x0, x1
         0x60, 0x00, 0x00, 0x54, // b.eq end
         0x02, 0x00, 0x80, 0xD2, // mov x2, #0
         0x02, 0x00, 0x00, 0x14, // b end
         0x22, 0x00, 0x80, 0xD2, // mov x2, #1
         // end:
+        0x00, 0x00, 0x80, 0xD2, // mov x0, #0
+        0x00, 0x00, 0x40, 0xF9 // mov x0, [x0]
     };
 
     proc.write_mem(addr, stub);
