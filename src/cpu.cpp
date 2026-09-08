@@ -109,15 +109,29 @@ emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
 		return status::invalid_mem;
 	}
 
-	// todo: handle case where there is a region before AND after it
-	if (const auto prev_rgn = find_rgn(addr - 1))
+	const auto next_rgn_addr = addr + size;
+
+	const auto prev_rgn = find_rgn(addr - 1);
+	const auto next_rgn = find_rgn(next_rgn_addr);
+
+	if (prev_rgn && next_rgn)
+	{
+		prev_rgn->data.resize(prev_rgn->size() + size);
+		prev_rgn->data.insert(prev_rgn->data.end(), next_rgn->data.begin(), next_rgn->data.end());
+
+		mem_.erase(next_rgn_addr);
+
+		return status::success;
+	}
+
+	if (prev_rgn)
 	{
 		prev_rgn->data.resize(prev_rgn->size() + size);
 
 		return status::success;
 	}
 
-	if (const auto next_rgn = find_rgn(addr + size))
+	if (next_rgn)
 	{
 		const addr_t old_addr = next_rgn->addr;
 
