@@ -22,6 +22,13 @@ emu::cpu proc;
 auto core = proc.create_core<emu::arm64_core>();
 ```
 
+## Running a CPU core
+
+```c++
+const emu::status status = core->run(proc, addr);
+LOG("run returned with {}", status.to_string());
+```
+
 ## Mapping memory
 
 ```c++
@@ -54,10 +61,14 @@ const std::uint64_t val = core->reg(ARM64_REG_X0);
 core->set_reg(ARM64_REG_X0, val);
 ```
 
-## Hooking memory accesses
+## Hooks
+
+Hooks can be applied on a CPU core/thread level or on a global CPU level. To add hooks on a specific core, use `core->hook_mem` or `core->hook_insn`. To add hooks on every core (globally on the CPU) use `proc.hook_mem` or `proc.hook_insn`.
+
+### Hooking memory accesses
 
 ```c++
-proc.hook_mem(addr, addr + size, emu::prot_all, // monitors prot_read, prot_write, prot_exec
+const emu::cpu::hook_handle handle = proc.hook_mem(addr, addr + size, emu::prot_all, // monitors prot_read, prot_write, prot_exec
     [](const emu::addr_t addr_, const std::size_t size_, const emu::mem_prot prot)
     {
         LOG("{}-{} is being accessed with prot {}", addr_, addr_ + size_, static_cast<std::uint8_t>(prot));
@@ -65,12 +76,12 @@ proc.hook_mem(addr, addr + size, emu::prot_all, // monitors prot_read, prot_writ
 );
 ```
 
-# Hooking instructions
+### Hooking instructions
 
 If true is returned from the callback, then the instruction will be skipped (goes to next program counter). If false is returned, then the instruction will be executed.
 
 ```c++
-proc.hook_insn(addr, addr + size, ARM64_INS_B, // monitors B (jump) instruction
+const emu::cpu::hook_handle handle = proc.hook_insn(addr, addr + size, ARM64_INS_B, // monitors B (jump) instruction
     [](const emu::addr_t addr_) -> bool
     {
         LOG("b (jump) is being executed at 0x{:X}", addr_);
@@ -80,11 +91,14 @@ proc.hook_insn(addr, addr + size, ARM64_INS_B, // monitors B (jump) instruction
 );
 ```
 
-## Running a CPU core
+### Removing hooks
 
 ```c++
-const emu::status status = core->run(proc, addr);
-LOG("run returned with {}", status.to_string());
+const auto global_handle = proc.hook_insn(/**/);
+proc.remove_hook(global_handle);
+
+const auto core_handle = core->hook_insn(/**/);
+core->remove_hook(core_handle);
 ```
 
 ## Status codes
