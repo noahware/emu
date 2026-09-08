@@ -14,12 +14,13 @@ emu::cpu_core::~cpu_core()
 emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 {
 	set_pc(addr);
+	stopped_ = false;
 
 	const auto insn = cs_malloc(decoder_);
 
 	status result = status::success;
 
-	while (true)
+	while (!stopped_.load(std::memory_order_relaxed))
 	{
 		const addr_t curr_pc = pc();
 

@@ -5,6 +5,7 @@
 #include <span>
 #include <map>
 #include <vector>
+#include <atomic>
 #include <shared_mutex>
 
 #include "hook.hpp"
@@ -24,6 +25,7 @@ namespace emu
 		virtual ~cpu_core();
 
 		status run(cpu& proc, addr_t addr);
+		void stop() { stopped_ = true; }
 
 		[[nodiscard]] virtual addr_t pc() const = 0;
 		virtual void set_pc(addr_t new_pc)
@@ -52,6 +54,7 @@ namespace emu
 		}
 
 	protected:
+		std::atomic<bool> stopped_ = false;
 		bool pc_changed_ = false;
 		hooks hooks_ = { };
 
@@ -87,6 +90,13 @@ namespace emu
 		[[nodiscard]] rgn_ref_mut find_rgn(const addr_t addr, const std::size_t s = 0)
 		{
 			return find_rgn_mut(addr, s);
+		}
+
+		void stop()
+		{
+			std::shared_lock lock(cores_mutex_);
+			for (auto& c : cores_)
+				c->stop();
 		}
 
 		void add_core(std::shared_ptr<cpu_core> core);
