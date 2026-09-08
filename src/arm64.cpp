@@ -107,6 +107,7 @@ emu::status emu::arm64_core::handle_ret(cpu& proc, const cs_insn& insn)
 	const std::uint64_t ret_addr = reg(target);
 
 	set_pc(ret_addr);
+
 	return status::success;
 }
 
