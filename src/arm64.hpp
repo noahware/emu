@@ -9,6 +9,24 @@ namespace emu
 		std::uint8_t z : 1;
 		std::uint8_t c : 1;
 		std::uint8_t v : 1;
+
+		[[nodiscard]] bool eq() const { return z; }
+		[[nodiscard]] bool ne() const { return !z; }
+		[[nodiscard]] bool cs() const { return c; }
+		[[nodiscard]] bool hs() const { return c; }
+		[[nodiscard]] bool cc() const { return !c; }
+		[[nodiscard]] bool lo() const { return !c; }
+		[[nodiscard]] bool mi() const { return n; }
+		[[nodiscard]] bool pl() const { return !n; }
+		[[nodiscard]] bool vs() const { return v; }
+		[[nodiscard]] bool vc() const { return !v; }
+		[[nodiscard]] bool hi() const { return c && !z; }
+		[[nodiscard]] bool ls() const { return !c || z; }
+		[[nodiscard]] bool ge() const { return n == v; }
+		[[nodiscard]] bool lt() const { return n != v; }
+		[[nodiscard]] bool gt() const { return !z && n == v; }
+		[[nodiscard]] bool le() const { return z || n != v; }
+		[[nodiscard]] bool al() const { return true; }
 	};
 
 	struct arm64_state
