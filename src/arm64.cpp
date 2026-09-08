@@ -34,6 +34,8 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_RET: return handle_ret(proc, insn);
 		case ARM64_INS_CBZ:  return handle_cbz(insn);
 		case ARM64_INS_CBNZ: return handle_cbnz(insn);
+		case ARM64_INS_TBZ:  return handle_tbz(insn);
+		case ARM64_INS_TBNZ: return handle_tbnz(insn);
 		case ARM64_INS_B:   return handle_b(proc, insn);
 		case ARM64_INS_BR:  return handle_br(proc, insn);
 		case ARM64_INS_BL:  return handle_bl(proc, insn);
@@ -181,6 +183,22 @@ emu::status emu::arm64_core::handle_cbnz(const cs_insn& insn)
 	const auto& ops = insn.detail->arm64.operands;
 	if (reg<std::uint64_t>(ops[0].reg) != 0)
 		set_pc(ops[1].imm);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_tbz(const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+	if (!(reg<std::uint64_t>(ops[0].reg) & (1ULL << ops[1].imm)))
+		set_pc(ops[2].imm);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_tbnz(const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+	if (reg<std::uint64_t>(ops[0].reg) & (1ULL << ops[1].imm))
+		set_pc(ops[2].imm);
 	return status::success;
 }
 

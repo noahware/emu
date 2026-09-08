@@ -243,6 +243,8 @@ namespace emu
 		status handle_ret(cpu& proc, const cs_insn& insn);
 		status handle_cbz(const cs_insn& insn);
 		status handle_cbnz(const cs_insn& insn);
+		status handle_tbz(const cs_insn& insn);
+		status handle_tbnz(const cs_insn& insn);
 		status handle_b(cpu& proc, const cs_insn& insn);
 		status handle_br(cpu& proc, const cs_insn& insn);
 		status handle_bl(cpu& proc, const cs_insn& insn);
