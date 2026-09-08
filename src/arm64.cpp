@@ -24,6 +24,9 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_CSEL: return handle_csel(proc, insn);
 		case ARM64_INS_ADR:  return handle_adr(proc, insn);
 		case ARM64_INS_ADRP: return handle_adrp(proc, insn);
+		case ARM64_INS_MOVK: return handle_movk(proc, insn);
+		case ARM64_INS_MOVZ:  return handle_movz(proc, insn);
+		case ARM64_INS_MOVN:  return handle_movn(proc, insn);
 		case ARM64_INS_NOP:  return status::success;
 		default:             return status::unhandled_insn;
 	}
@@ -263,3 +266,32 @@ emu::status emu::arm64_core::handle_adrp(cpu& proc, const cs_insn& insn)
 	return status::success;
 }
 
+emu::status emu::arm64_core::handle_movz(cpu& proc, const cs_insn& insn)
+{
+	return handle_mov(proc, insn);
+}
+
+emu::status emu::arm64_core::handle_movk(cpu& proc, const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+	const arm64_reg dest = ops[0].reg;
+	const unsigned shift = ops[1].shift.value;
+	const std::uint64_t mask = static_cast<std::uint64_t>(0xFFFF) << shift;
+	const std::uint64_t imm = static_cast<std::uint64_t>(ops[1].imm) << shift;
+
+	set_reg(dest, (reg<std::uint64_t>(dest) & ~mask) | imm);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_movn(cpu& proc, const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+	const auto status = handle_mov(proc, insn);
+
+	const auto dest = ops[0].reg;
+
+	if (status)
+		set_reg(dest, ~reg<std::uint64_t>(dest));
+
+	return status;
+}

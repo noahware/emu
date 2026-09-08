@@ -235,5 +235,8 @@ namespace emu
 		status handle_csel(cpu& proc, const cs_insn& insn);
 		status handle_adr(cpu& proc, const cs_insn& insn);
 		status handle_adrp(cpu& proc, const cs_insn& insn);
+		status handle_movz(cpu& proc, const cs_insn& insn);
+		status handle_movk(cpu& proc, const cs_insn& insn);
+		status handle_movn(cpu& proc, const cs_insn& insn);
 	};
 }
