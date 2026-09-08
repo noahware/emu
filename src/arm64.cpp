@@ -14,6 +14,8 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_BR:  return handle_br(proc, insn);
 		case ARM64_INS_BL:  return handle_bl(proc, insn);
 		case ARM64_INS_BLR: return handle_blr(proc, insn);
+		case ARM64_INS_LDP: return handle_ldp(proc, insn);
+		case ARM64_INS_STP: return handle_stp(proc, insn);
 		default:            return status::unhandled_insn;
 	}
 }
@@ -24,18 +26,14 @@ emu::status emu::arm64_core::handle_ldr(cpu& proc, const cs_insn& insn)
 	const addr_t addr = state_.mem_op_addr(ops[1].mem);
 
 	const arm64_reg reg = ops[0].reg;
-	std::size_t size;
+	const std::size_t size = arm64_state::reg_size_wx(reg);
 
-	if (arm64_state::is_w_reg(reg))
-		size = sizeof(std::uint32_t);
-	else if (arm64_state::is_x_reg(reg))
-		size = sizeof(std::uint64_t);
-	else
+	if (!size)
 		return status::invalid_insn;
 
 	std::uint64_t val = 0;
 
-	status status = read_mem(proc, addr, &val, size);
+	const status status = read_mem(proc, addr, &val, size);
 
 	if (status)
 		set_reg(reg, val);
@@ -49,13 +47,9 @@ emu::status emu::arm64_core::handle_str(cpu& proc, const cs_insn& insn)
 	const addr_t addr = state_.mem_op_addr(ops[1].mem);
 
 	const arm64_reg dest = ops[0].reg;
-	std::size_t size;
+	const std::size_t size = arm64_state::reg_size_wx(dest);
 
-	if (arm64_state::is_w_reg(dest))
-		size = sizeof(std::uint32_t);
-	else if (arm64_state::is_x_reg(dest))
-		size = sizeof(std::uint64_t);
-	else
+	if (!size)
 		return status::invalid_insn;
 
 	const std::uint64_t val = reg(dest);
@@ -146,5 +140,72 @@ emu::status emu::arm64_core::handle_blr(cpu& proc, const cs_insn& insn)
 
 	set_reg(ARM64_REG_LR, ret_addr);
 	set_pc(target_addr);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_ldp(cpu& proc, const cs_insn& insn)
+{
+	const auto& arm_insn = insn.detail->arm64;
+	const auto& ops = arm_insn.operands;
+	const auto& mem = ops[2].mem;
+
+	const std::size_t xsize = arm64_state::reg_size_wx(ops[0].reg);
+	const std::size_t ysize = arm64_state::reg_size_wx(ops[1].reg);
+
+	if (!xsize || xsize != ysize)
+		return status::invalid_insn;
+
+	const std::uint64_t pre_addr = reg(mem.base);
+	const std::uint64_t post_addr = pre_addr + mem.disp;
+
+	const std::uint64_t start_addr = arm_insn.post_index ? pre_addr : post_addr;
+	std::uint64_t xval = 0;
+
+	if (!read_mem(proc, start_addr, &xval, xsize))
+		return status::invalid_mem;
+
+	std::uint64_t yval = 0;
+
+	if (!read_mem(proc, start_addr + xsize, &yval, ysize))
+		return status::invalid_mem;
+
+	if (arm_insn.writeback)
+		set_reg(mem.base, post_addr);
+
+	set_reg(ops[0].reg, xval);
+	set_reg(ops[1].reg, yval);
+
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_stp(cpu& proc, const cs_insn& insn)
+{
+	const auto& arm_insn = insn.detail->arm64;
+	const auto& ops = arm_insn.operands;
+	const auto& mem = ops[2].mem;
+
+	const std::size_t xsize = arm64_state::reg_size_wx(ops[0].reg);
+	const std::size_t ysize = arm64_state::reg_size_wx(ops[1].reg);
+
+	if (!xsize || xsize != ysize)
+		return status::invalid_insn;
+
+	const std::uint64_t pre_addr = reg(mem.base);
+	const std::uint64_t post_addr = pre_addr + mem.disp;
+
+	const std::uint64_t start_addr = arm_insn.post_index ? pre_addr : post_addr;
+	const std::uint64_t xval = reg(ops[0].reg);
+
+	if (!write_mem(proc, start_addr, &xval, xsize))
+		return status::invalid_mem;
+
+	const std::uint64_t yval = reg(ops[1].reg);
+
+	if (!write_mem(proc, start_addr + xsize, &yval, ysize))
+		return status::invalid_mem;
+
+	if (arm_insn.writeback)
+		set_reg(mem.base, post_addr);
+
 	return status::success;
 }

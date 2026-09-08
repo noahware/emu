@@ -19,6 +19,18 @@ namespace emu
 			return reg >= ARM64_REG_W0 && reg <= ARM64_REG_W28;
 		}
 
+		[[nodiscard]] static std::size_t reg_size_wx(const arm64_reg reg)
+		{
+			std::size_t size = 0;
+
+			if (is_w_reg(reg))
+				size = sizeof(std::uint32_t);
+			else if (is_x_reg(reg))
+				size = sizeof(std::uint64_t);
+
+			return size;
+		}
+
 		[[nodiscard]] std::uint64_t reg(const arm64_reg reg) const
 		{
 			if (is_x_reg(reg))
@@ -101,5 +113,7 @@ namespace emu
 		status handle_br(cpu& proc, const cs_insn& insn);
 		status handle_bl(cpu& proc, const cs_insn& insn);
 		status handle_blr(cpu& proc, const cs_insn& insn);
+		status handle_ldp(cpu& proc, const cs_insn& insn);
+		status handle_stp(cpu& proc, const cs_insn& insn);
 	};
 }
