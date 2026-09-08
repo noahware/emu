@@ -207,6 +207,8 @@ namespace emu
 			return state_.set_reg(reg, val);
 		}
 
+		[[nodiscard]] const arm64_flags& flags() const { return state_.flags; }
+
 	protected:
 		arm64_state state_ = { };
 
@@ -221,6 +223,20 @@ namespace emu
 			return status::success;
 		}
 
+		void set_nz(arm64_reg r, std::uint64_t result);
+		void set_add_flags(arm64_reg r, std::uint64_t a, std::uint64_t b);
+		void set_sub_flags(arm64_reg r, std::uint64_t a, std::uint64_t b);
+		void set_logic_flags(arm64_reg r, std::uint64_t result);
+
+		struct flag_ops_args { arm64_reg src_reg; std::uint64_t a; std::uint64_t b; };
+		flag_ops_args flag_operands(const cs_insn& insn);
+
+		status handle_adds(const cs_insn& insn);
+		status handle_subs(const cs_insn& insn);
+		status handle_ands(const cs_insn& insn);
+		status handle_bics(const cs_insn& insn);
+		status handle_neg(const cs_insn& insn, bool set_flags);
+
 		status handle_ldr(cpu& proc, const cs_insn& insn);
 		status handle_str(cpu& proc, const cs_insn& insn);
 		status handle_mov(cpu& proc, const cs_insn& insn);
@@ -231,7 +247,6 @@ namespace emu
 		status handle_blr(cpu& proc, const cs_insn& insn);
 		status handle_ldp(cpu& proc, const cs_insn& insn);
 		status handle_stp(cpu& proc, const cs_insn& insn);
-		status handle_cmp(cpu& proc, const cs_insn& insn);
 		status handle_csel(cpu& proc, const cs_insn& insn);
 		status handle_adr(cpu& proc, const cs_insn& insn);
 		status handle_adrp(cpu& proc, const cs_insn& insn);

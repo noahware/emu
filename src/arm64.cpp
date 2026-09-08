@@ -1,5 +1,16 @@
 #include "arm64.hpp"
 #include <functional>
+#include <limits>
+
+namespace
+{
+	unsigned reg_shift(const arm64_reg r) { return emu::arm64_state::is_x_reg(r) ? 63 : 31; }
+
+	std::uint64_t trunc(const std::uint64_t val, const arm64_reg r)
+	{
+		return emu::arm64_state::is_x_reg(r) ? val : static_cast<std::uint32_t>(val);
+	}
+}
 
 emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 {
@@ -20,7 +31,15 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_BLR: return handle_blr(proc, insn);
 		case ARM64_INS_LDP: return handle_ldp(proc, insn);
 		case ARM64_INS_STP: return handle_stp(proc, insn);
-		case ARM64_INS_CMP:  return handle_cmp(proc, insn);
+		case ARM64_INS_ADDS: return handle_adds(insn);
+		case ARM64_INS_SUBS: return handle_subs(insn);
+		case ARM64_INS_ANDS: return handle_ands(insn);
+		case ARM64_INS_BICS: return handle_bics(insn);
+		case ARM64_INS_NEG:  return handle_neg(insn, false);
+		case ARM64_INS_NEGS: return handle_neg(insn, true);
+		case ARM64_INS_CMP:  return handle_subs(insn);
+		case ARM64_INS_CMN:  return handle_adds(insn);
+		case ARM64_INS_TST:  return handle_ands(insn);
 		case ARM64_INS_CSEL: return handle_csel(proc, insn);
 		case ARM64_INS_ADR:  return handle_adr(proc, insn);
 		case ARM64_INS_ADRP: return handle_adrp(proc, insn);
@@ -230,32 +249,87 @@ emu::status emu::arm64_core::handle_stp(cpu& proc, const cs_insn& insn)
 	return status::success;
 }
 
-emu::status emu::arm64_core::handle_cmp(cpu& proc, const cs_insn& insn)
+void emu::arm64_core::set_nz(const arm64_reg r, const std::uint64_t result)
+{
+	state_.flags.n = (result >> reg_shift(r)) & 1;
+	state_.flags.z = result == 0;
+}
+
+void emu::arm64_core::set_add_flags(const arm64_reg r, const std::uint64_t a, const std::uint64_t b)
+{
+	const std::uint64_t result = trunc(a + b, r);
+	set_nz(r, result);
+	state_.flags.c = arm64_state::is_x_reg(r)
+		? result < a
+		: (static_cast<std::uint64_t>(static_cast<std::uint32_t>(a)) + static_cast<std::uint32_t>(b)) > std::numeric_limits<std::uint32_t>::max();
+	state_.flags.v = (((~(a ^ b)) & (a ^ result)) >> reg_shift(r)) & 1;
+}
+
+void emu::arm64_core::set_sub_flags(const arm64_reg r, const std::uint64_t a, const std::uint64_t b)
+{
+	const std::uint64_t result = trunc(a - b, r);
+	set_nz(r, result);
+	state_.flags.c = b <= a;
+	state_.flags.v = (((a ^ b) & (a ^ result)) >> reg_shift(r)) & 1;
+}
+
+void emu::arm64_core::set_logic_flags(const arm64_reg r, const std::uint64_t result)
+{
+	set_nz(r, result);
+	state_.flags.c = 0;
+	state_.flags.v = 0;
+}
+
+emu::arm64_core::flag_ops_args emu::arm64_core::flag_operands(const cs_insn& insn)
 {
 	const auto& ops = insn.detail->arm64.operands;
+	const auto n = insn.detail->arm64.op_count;
+	const arm64_reg src = n == 3 ? ops[1].reg : ops[0].reg;
+	return { src, reg<std::uint64_t>(src), op_non_mem(ops[n - 1]) };
+}
 
-	const std::uint64_t a = reg(ops[0].reg);
+emu::status emu::arm64_core::handle_adds(const cs_insn& insn)
+{
+	const auto [src, a, b] = flag_operands(insn);
+	if (insn.detail->arm64.op_count == 3)
+		handle_binop(insn, std::plus{});
+	set_add_flags(src, a, b);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_subs(const cs_insn& insn)
+{
+	const auto [src, a, b] = flag_operands(insn);
+	if (insn.detail->arm64.op_count == 3)
+		handle_binop(insn, std::minus{});
+	set_sub_flags(src, a, b);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_ands(const cs_insn& insn)
+{
+	const auto [src, a, b] = flag_operands(insn);
+	if (insn.detail->arm64.op_count == 3)
+		handle_binop(insn, std::bit_and{});
+	set_logic_flags(src, a & b);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_bics(const cs_insn& insn)
+{
+	const auto [src, a, b] = flag_operands(insn);
+	if (insn.detail->arm64.op_count == 3)
+		handle_binop(insn, [](std::uint64_t x, std::uint64_t y) { return x & ~y; });
+	set_logic_flags(src, a & ~b);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_neg(const cs_insn& insn, const bool set_flags)
+{
+	const auto& ops = insn.detail->arm64.operands;
 	const std::uint64_t b = op_non_mem(ops[1]);
-
-	std::size_t shift;
-	std::uint64_t result;
-
-	if (arm64_state::is_x_reg(ops[0].reg))
-	{
-		result = a - b;
-		shift = 63;
-	}
-	else
-	{
-		result = static_cast<std::uint32_t>(a) - static_cast<std::uint32_t>(b);
-		shift = 31;
-	}
-
-	state_.flags.z = result == 0;
-	state_.flags.n = (result >> shift) & 1;
-	state_.flags.c = b <= a;
-	state_.flags.v = (((a ^ b) & (a ^ result)) >> shift) & 1;
-
+	set_reg(ops[0].reg, 0 - b);
+	if (set_flags) set_sub_flags(ops[0].reg, 0, b);
 	return status::success;
 }
 
