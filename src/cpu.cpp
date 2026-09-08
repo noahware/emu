@@ -26,7 +26,7 @@ emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 		{
 			const auto rgn = proc.find_rgn_const(curr_pc);
 
-			if (!rgn)
+			if (!rgn || !rgn->can_exec())
 			{
 				hooks_.on_invalid(curr_pc, {}, prot_exec);
 
@@ -74,7 +74,7 @@ emu::status emu::cpu_core::read_mem(const cpu& proc, const addr_t addr, const st
 {
 	hooks_.on_read(addr, buf.size());
 
-	const auto status = proc.read_mem(addr, buf);
+	const auto status = proc.read_mem(addr, buf, true);
 
 	if (!status)
 		hooks_.on_invalid(addr, buf.size(), prot_read);
@@ -91,7 +91,7 @@ emu::status emu::cpu_core::write_mem(cpu& proc, const addr_t addr, const std::sp
 {
 	hooks_.on_write(addr, buf.size());
 
-	const auto status = proc.write_mem(addr, buf);
+	const auto status = proc.write_mem(addr, buf, true);
 
 	if (!status)
 		hooks_.on_invalid(addr, buf.size(), prot_write);
@@ -104,7 +104,7 @@ emu::status emu::cpu_core::write_mem(cpu& proc, const addr_t addr, const void* c
 	return write_mem(proc, addr, std::span(static_cast<const std::uint8_t*>(buf), size));
 }
 
-emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
+emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size, const mem_prot prot)
 {
 	if (find_rgn(addr))
 	{
@@ -116,7 +116,7 @@ emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
 	const auto prev_rgn = find_rgn(addr - 1);
 	const auto next_rgn = find_rgn(next_rgn_addr);
 
-	if (prev_rgn && next_rgn)
+	if (prev_rgn && next_rgn && prev_rgn->prot == next_rgn->prot && prev_rgn->prot == prot)
 	{
 		prev_rgn->data.resize(prev_rgn->size() + size);
 		prev_rgn->data.insert(prev_rgn->data.end(), next_rgn->data.begin(), next_rgn->data.end());
@@ -126,14 +126,14 @@ emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
 		return status::success;
 	}
 
-	if (prev_rgn)
+	if (prev_rgn && prev_rgn->prot == prot)
 	{
 		prev_rgn->data.resize(prev_rgn->size() + size);
 
 		return status::success;
 	}
 
-	if (next_rgn)
+	if (next_rgn && next_rgn->prot == prot)
 	{
 		const addr_t old_addr = next_rgn->addr;
 
@@ -149,16 +149,16 @@ emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size)
 
 	std::unique_lock lock(mem_mutex_);
 
-	mem_[addr] = mem_region{ addr, std::vector<std::uint8_t>(size, 0) };
+	mem_[addr] = mem_region{ addr, std::vector<std::uint8_t>(size, 0), prot };
 
 	return status::success;
 }
 
-emu::status emu::cpu::read_mem(const addr_t addr, const std::span<std::uint8_t> buf) const
+emu::status emu::cpu::read_mem(const addr_t addr, const std::span<std::uint8_t> buf, const bool enforce_prot) const
 {
 	const auto rgn = find_rgn(addr);
 
-	if (!rgn)
+	if (!rgn || (enforce_prot && !rgn->can_read()))
 	{
 		return status::invalid_mem;
 	}
@@ -176,11 +176,11 @@ emu::status emu::cpu::read_mem(const addr_t addr, const std::span<std::uint8_t> 
 	return status::success;
 }
 
-emu::status emu::cpu::write_mem(const addr_t addr, const std::span<const std::uint8_t> buf)
+emu::status emu::cpu::write_mem(const addr_t addr, const std::span<const std::uint8_t> buf, const bool enforce_prot)
 {
 	const auto rgn = find_rgn(addr);
 
-	if (!rgn)
+	if (!rgn || (enforce_prot && !rgn->can_write()))
 	{
 		return status::invalid_mem;
 	}

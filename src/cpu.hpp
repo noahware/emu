@@ -70,9 +70,9 @@ namespace emu
 	public:
 		using hook_handle = std::vector<hooks::handle>;
 
-		status map_mem(addr_t addr, std::size_t size);
-		status read_mem(addr_t addr, std::span<std::uint8_t> buf) const;
-		status write_mem(addr_t addr, std::span<const std::uint8_t> buf);
+		status map_mem(addr_t addr, std::size_t size, mem_prot prot = prot_all);
+		status read_mem(addr_t addr, std::span<std::uint8_t> buf, bool enforce_prot = false) const;
+		status write_mem(addr_t addr, std::span<const std::uint8_t> buf, bool enforce_prot = false);
 
 		[[nodiscard]] rgn_ref_const find_rgn_const(addr_t addr, std::size_t s = 0) const;
 		[[nodiscard]] rgn_ref_mut find_rgn_mut(addr_t addr, std::size_t s = 0);

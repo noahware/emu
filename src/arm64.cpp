@@ -83,7 +83,6 @@ emu::status emu::arm64_core::handle_mov(cpu& proc, const cs_insn& insn)
 	return status::success;
 }
 
-
 emu::status emu::arm64_core::handle_ret(cpu& proc, const cs_insn& insn)
 {
 	const arm64_reg target = insn.detail->arm64.op_count > 0 ? insn.detail->arm64.operands[0].reg : ARM64_REG_LR;

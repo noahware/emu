@@ -9,6 +9,22 @@ namespace emu
 	{
 		addr_t addr;
 		std::vector<std::uint8_t> data;
+		mem_prot prot;
+
+		[[nodiscard]] bool can_read() const noexcept
+		{
+			return prot & prot_read;
+		}
+
+		[[nodiscard]] bool can_write() const noexcept
+		{
+			return prot & prot_write;
+		}
+
+		[[nodiscard]] bool can_exec() const noexcept
+		{
+			return prot & prot_exec;
+		}
 
 		[[nodiscard]] std::size_t offset_of(const addr_t off_addr) const noexcept
 		{
@@ -27,7 +43,7 @@ namespace emu
 
 		[[nodiscard]] bool contains(const addr_t check_addr) const noexcept
 		{
-			return addr <= check_addr && check_addr <= end_addr();
+			return addr <= check_addr && check_addr < end_addr();
 		}
 
 		[[nodiscard]] addr_t end_addr() const noexcept
