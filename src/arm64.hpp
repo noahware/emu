@@ -174,6 +174,9 @@ namespace emu
 	class arm64_core : public cpu_core
 	{
 	public:
+		static constexpr std::size_t page_size = 0x1000;
+		static constexpr std::size_t page_mask = page_size - 1;
+
 		arm64_core()
 			:	cpu_core(CS_ARCH_ARM64, CS_MODE_LITTLE_ENDIAN) { }
 
@@ -223,5 +226,7 @@ namespace emu
 		status handle_stp(cpu& proc, const cs_insn& insn);
 		status handle_cmp(cpu& proc, const cs_insn& insn);
 		status handle_csel(cpu& proc, const cs_insn& insn);
+		status handle_adr(cpu& proc, const cs_insn& insn);
+		status handle_adrp(cpu& proc, const cs_insn& insn);
 	};
 }

@@ -258,3 +258,27 @@ emu::status emu::arm64_core::handle_csel(cpu& proc, const cs_insn& insn)
 	set_reg(ops[0].reg, val);
 	return status::success;
 }
+
+emu::status emu::arm64_core::handle_adr(cpu& proc, const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+
+	const std::uint64_t curr_pc = pc();
+	const std::uint64_t target_addr = curr_pc + ops[1].imm;
+
+	set_reg(ops[0].reg, target_addr);
+
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_adrp(cpu& proc, const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+
+	const std::uint64_t curr_page = pc() & ~page_mask;
+	const std::uint64_t target_addr = curr_page + ops[1].imm;
+
+	set_reg(ops[0].reg, target_addr);
+
+	return status::success;
+}
