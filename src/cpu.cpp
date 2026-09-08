@@ -27,6 +27,8 @@ emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 
 		if (!rgn)
 		{
+			hooks_.on_invalid(curr_pc, {}, prot_exec);
+
 			result = status::invalid_mem;
 			break;
 		}
@@ -70,7 +72,12 @@ emu::status emu::cpu_core::read_mem(const cpu& proc, const addr_t addr, const st
 {
 	hooks_.on_read(addr, buf.size());
 
-	return proc.read_mem(addr, buf);
+	const auto status = proc.read_mem(addr, buf);
+
+	if (!status)
+		hooks_.on_invalid(addr, buf.size(), prot_read);
+
+	return status;
 }
 
 emu::status emu::cpu_core::read_mem(const cpu& proc, const addr_t addr, void* const buf, const std::size_t size) const 
@@ -82,7 +89,12 @@ emu::status emu::cpu_core::write_mem(cpu& proc, const addr_t addr, const std::sp
 {
 	hooks_.on_write(addr, buf.size());
 
-	return proc.write_mem(addr, buf);
+	const auto status = proc.write_mem(addr, buf);
+
+	if (!status)
+		hooks_.on_invalid(addr, buf.size(), prot_write);
+
+	return status;
 }
 
 emu::status emu::cpu_core::write_mem(cpu& proc, const addr_t addr, const void* const buf, const std::size_t size)
@@ -232,6 +244,19 @@ emu::cpu::hook_handle emu::cpu::hook_insn(const addr_t start_addr, const addr_t 
 
 	for (auto& core : cores_)
 		handles.push_back(core->hook_insn(start_addr, end_addr, mnemonic, cb));
+
+	return handles;
+}
+
+emu::cpu::hook_handle emu::cpu::hook_invalid_mem(const addr_t start_addr, const addr_t end_addr, hooks::invalid_mem_cb cb)
+{
+	std::shared_lock lock(cores_mutex_);
+
+	hook_handle handles;
+	handles.reserve(cores_.size());
+
+	for (auto& core : cores_)
+		handles.push_back(core->hook_invalid_mem(start_addr, end_addr, cb));
 
 	return handles;
 }

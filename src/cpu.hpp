@@ -41,6 +41,11 @@ namespace emu
 			return hooks_.add_insn(start_addr, end_addr, mnemonic, std::move(cb));
 		}
 
+		hook_handle hook_invalid_mem(const addr_t start_addr, const addr_t end_addr, hooks::invalid_mem_cb cb)
+		{
+			return hooks_.add_invalid_mem(start_addr, end_addr, std::move(cb));
+		}
+
 		void remove_hook(const hook_handle h)
 		{
 			hooks_.remove(h);
@@ -95,6 +100,7 @@ namespace emu
 
 		hook_handle hook_mem(addr_t start_addr, addr_t end_addr, mem_prot prot, hooks::mem_cb cb);
 		hook_handle hook_insn(addr_t start_addr, addr_t end_addr, arm64_insn mnemonic, hooks::insn_cb cb);
+		hook_handle hook_invalid_mem(addr_t start_addr, addr_t end_addr, hooks::invalid_mem_cb cb);
 		void remove_hook(const hook_handle& h);
 
 		[[nodiscard]] std::vector<std::shared_ptr<cpu_core>> cores() const
