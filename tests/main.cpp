@@ -33,23 +33,28 @@ int main()
         LOG("buffers are NOT equal");
     }
 
-    std::array<std::uint8_t, 4> stub = { 0x01, 0x00, 0x40, 0xB9 }; // ldr w1, [x0]
+    std::array<std::uint8_t, 20> stub = {
+        0x1F, 0x00, 0x01, 0xEB, // cmp x0, x1
+        0x60, 0x00, 0x00, 0x54, // b.eq end
+        0x02, 0x00, 0x80, 0xD2, // mov x2, #0
+        0x02, 0x00, 0x00, 0x14, // b end
+        0x22, 0x00, 0x80, 0xD2, // mov x2, #1
+        // end:
+    };
 
-    proc.hook_mem(addr, addr + size, emu::prot_all,
-        [](const emu::addr_t addr_, const std::size_t size_, const emu::mem_prot prot)
-        {
-            LOG("{}-{} is being accessed with prot {}", addr_, addr_ + size_, static_cast<std::uint8_t>(prot));
-        }
-    );
-
-    core->set_reg(ARM64_REG_X0, addr);
     proc.write_mem(addr, stub);
 
-    const emu::status status = core->run(proc, addr);
+    // differs:
+    core->set_reg(ARM64_REG_X0, 4);
+    core->set_reg(ARM64_REG_X1, 5);
+    core->run(proc, addr);
+    LOG("X2 value: {}", core->reg(ARM64_REG_X2));
 
-    LOG("run returned with {}", status.to_string());
-    LOG("W1 value: 0x{:X}", core->reg(ARM64_REG_W1));
-    LOG("pc: 0x{:X}", core->pc());
+    // matches:
+    core->set_reg(ARM64_REG_X0, 6);
+    core->set_reg(ARM64_REG_X1, 6);
+    core->run(proc, addr);
+    LOG("X2 value: {}", core->reg(ARM64_REG_X2));
 
     return 0;
 }
