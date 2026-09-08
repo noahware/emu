@@ -16,8 +16,15 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 {
 	switch (insn.id)
 	{
-		case ARM64_INS_LDR: return handle_ldr(proc, insn);
-		case ARM64_INS_STR: return handle_str(proc, insn);
+		case ARM64_INS_LDR:   return handle_load(proc, insn);
+		case ARM64_INS_LDRB:  return handle_load(proc, insn, sizeof(std::uint8_t));
+		case ARM64_INS_LDRH:  return handle_load(proc, insn, sizeof(std::uint16_t));
+		case ARM64_INS_LDRSB: return handle_load(proc, insn, sizeof(std::uint8_t), true);
+		case ARM64_INS_LDRSH: return handle_load(proc, insn, sizeof(std::uint16_t), true);
+		case ARM64_INS_LDRSW: return handle_load(proc, insn, sizeof(std::uint32_t), true);
+		case ARM64_INS_STR:   return handle_store(proc, insn);
+		case ARM64_INS_STRB:  return handle_store(proc, insn, sizeof(std::uint8_t));
+		case ARM64_INS_STRH:  return handle_store(proc, insn, sizeof(std::uint16_t));
 		case ARM64_INS_MOV: return handle_mov(proc, insn);
 		case ARM64_INS_ADD: return handle_binop(insn, std::plus{});
 		case ARM64_INS_SUB: return handle_binop(insn, std::minus{});
@@ -88,43 +95,55 @@ emu::arm64_widest_reg emu::arm64_core::op_non_mem(const cs_arm64_op& op) const
 	return arm64_widest_reg(val);
 }
 
-emu::status emu::arm64_core::handle_ldr(cpu& proc, const cs_insn& insn)
+emu::status emu::arm64_core::handle_load(cpu& proc, const cs_insn& insn,
+	const std::size_t access_size, const bool sign_ext)
 {
 	const auto& ops = insn.detail->arm64.operands;
 	const addr_t addr = state_.mem_op_addr(ops[1].mem);
+	const arm64_reg dest = ops[0].reg;
 
-	const arm64_reg reg = ops[0].reg;
-	const std::size_t size = arm64_state::reg_size(reg);
-
+	const std::size_t size = access_size ? access_size : arm64_state::reg_size(dest);
 	if (!size)
 		return status::invalid_insn;
 
 	arm64_widest_reg val = {};
-
 	const status status = read_mem(proc, addr, val.data(), size);
+	if (!status)
+		return status;
 
-	if (status)
-		set_reg(reg, val);
+	if (sign_ext)
+	{
+		std::int64_t sval;
+		switch (size)
+		{
+			case sizeof(std::uint8_t):  sval = static_cast<std::int8_t>(val);  break;
+			case sizeof(std::uint16_t): sval = static_cast<std::int16_t>(val); break;
+			case sizeof(std::uint32_t): sval = static_cast<std::int32_t>(val); break;
+			default: sval = static_cast<std::int64_t>(val); break;
+		}
+		set_reg(dest, static_cast<std::uint64_t>(sval));
+	}
+	else
+	{
+		set_reg(dest, val);
+	}
 
 	return status;
 }
 
-emu::status emu::arm64_core::handle_str(cpu& proc, const cs_insn& insn)
+emu::status emu::arm64_core::handle_store(cpu& proc, const cs_insn& insn,
+	const std::size_t access_size)
 {
 	const auto& ops = insn.detail->arm64.operands;
 	const addr_t addr = state_.mem_op_addr(ops[1].mem);
+	const arm64_reg src = ops[0].reg;
 
-	const arm64_reg dest = ops[0].reg;
-	const std::size_t size = arm64_state::reg_size(dest);
-
+	const std::size_t size = access_size ? access_size : arm64_state::reg_size(src);
 	if (!size)
 		return status::invalid_insn;
 
-	const arm64_widest_reg val = reg(dest);
-
-	status status = write_mem(proc, addr, val.data(), size);
-
-	return status;
+	const arm64_widest_reg val = reg(src);
+	return write_mem(proc, addr, val.data(), size);
 }
 
 emu::status emu::arm64_core::handle_mov(cpu& proc, const cs_insn& insn)
