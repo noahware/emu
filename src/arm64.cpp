@@ -495,13 +495,17 @@ emu::status emu::arm64_core::handle_sdiv(const cs_insn& insn)
 	{
 		const auto a = reg<std::int64_t>(ops[1].reg);
 		const auto b = reg<std::int64_t>(ops[2].reg);
-		set_reg(ops[0].reg, b ? static_cast<std::uint64_t>(a / b) : 0);
+		if (!b) set_reg(ops[0].reg, 0);
+		else if (a == std::numeric_limits<std::int64_t>::min() && b == -1) set_reg(ops[0].reg, static_cast<std::uint64_t>(a));
+		else set_reg(ops[0].reg, static_cast<std::uint64_t>(a / b));
 	}
 	else
 	{
 		const auto a = static_cast<std::int32_t>(reg<std::uint64_t>(ops[1].reg));
 		const auto b = static_cast<std::int32_t>(reg<std::uint64_t>(ops[2].reg));
-		set_reg(ops[0].reg, b ? static_cast<std::uint32_t>(a / b) : 0);
+		if (!b) set_reg(ops[0].reg, 0);
+		else if (a == std::numeric_limits<std::int32_t>::min() && b == -1) set_reg(ops[0].reg, static_cast<std::uint32_t>(a));
+		else set_reg(ops[0].reg, static_cast<std::uint32_t>(a / b));
 	}
 	return status::success;
 }
