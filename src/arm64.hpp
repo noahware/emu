@@ -236,6 +236,8 @@ namespace emu
 		status handle_ands(const cs_insn& insn);
 		status handle_bics(const cs_insn& insn);
 		status handle_neg(const cs_insn& insn, bool set_flags);
+		status handle_madd(const cs_insn& insn);
+		status handle_msub(const cs_insn& insn);
 
 		status handle_load(cpu& proc, const cs_insn& insn, std::size_t access_size = 0, bool sign_ext = false);
 		status handle_store(cpu& proc, const cs_insn& insn, std::size_t access_size = 0);

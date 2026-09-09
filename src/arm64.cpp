@@ -57,6 +57,9 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_MOVK: return handle_movk(proc, insn);
 		case ARM64_INS_MOVZ:  return handle_movz(proc, insn);
 		case ARM64_INS_MOVN:  return handle_movn(proc, insn);
+		case ARM64_INS_MUL:  return handle_binop(insn, std::multiplies{});
+		case ARM64_INS_MADD: return handle_madd(insn);
+		case ARM64_INS_MSUB: return handle_msub(insn);
 		case ARM64_INS_SVC:  return status::success;
 		case ARM64_INS_BRK:  return status::guest_exception;
 		case ARM64_INS_NOP:  return status::success;
@@ -387,6 +390,24 @@ emu::status emu::arm64_core::handle_neg(const cs_insn& insn, const bool set_flag
 	const std::uint64_t b = op_non_mem(ops[1]);
 	set_reg(ops[0].reg, 0 - b);
 	if (set_flags) set_sub_flags(ops[0].reg, 0, b);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_madd(const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+	const std::uint64_t result = reg<std::uint64_t>(ops[3].reg)
+		+ (reg<std::uint64_t>(ops[1].reg) * reg<std::uint64_t>(ops[2].reg));
+	set_reg(ops[0].reg, result);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_msub(const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+	const std::uint64_t result = reg<std::uint64_t>(ops[3].reg)
+		- (reg<std::uint64_t>(ops[1].reg) * reg<std::uint64_t>(ops[2].reg));
+	set_reg(ops[0].reg, result);
 	return status::success;
 }
 
