@@ -136,10 +136,14 @@ emu::status emu::cpu::map_mem(const addr_t addr, const std::size_t size, const m
 	if (find_rgn_unlocked(addr) != mem_.end())
 		return status::invalid_mem;
 
-	const auto next_rgn_addr = addr + size;
+	const auto end_addr = addr + size;
+
+	auto it = mem_.upper_bound(addr);
+	if (it != mem_.end() && it->first < end_addr)
+		return status::invalid_mem;
 
 	auto prev_it = (addr > 0) ? find_rgn_unlocked(addr - 1) : mem_.end();
-	auto next_it = find_rgn_unlocked(next_rgn_addr);
+	auto next_it = find_rgn_unlocked(end_addr);
 
 	if (prev_it != mem_.end() && next_it != mem_.end()
 		&& prev_it->second.prot == prot && next_it->second.prot == prot)
