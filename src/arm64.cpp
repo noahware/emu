@@ -57,6 +57,8 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_MOVK: return handle_movk(proc, insn);
 		case ARM64_INS_MOVZ:  return handle_movz(proc, insn);
 		case ARM64_INS_MOVN:  return handle_movn(proc, insn);
+		case ARM64_INS_SVC:  return status::success;
+		case ARM64_INS_BRK:  return status::guest_exception;
 		case ARM64_INS_NOP:  return status::success;
 		default:             return status::unhandled_insn;
 	}

@@ -5,7 +5,7 @@ namespace emu
 {
     struct status
     {
-        enum code : std::uint8_t { success, invalid_mem, unhandled_insn, invalid_insn };
+        enum code : std::uint8_t { success, invalid_mem, unhandled_insn, invalid_insn, guest_exception };
 
         code value;
 
@@ -23,6 +23,7 @@ namespace emu
                 case invalid_mem: return "invalid_memory";
                 case unhandled_insn: return "unhandled_insn";
                 case invalid_insn: return "invalid_insn";
+                case guest_exception: return "guest_exception";
             }
             return "unknown";
         }
