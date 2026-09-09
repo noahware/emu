@@ -1,6 +1,6 @@
 # emu
 
-ARM64 instruction emulator written in modern c++. Has hooking feature to monitor the reading, writing, and execution of memory. It also has multi-threaded support (can emulate multiple CPU threads at once).
+ARM64 instruction emulator written in modern c++. Has hooking feature to monitor the reading, writing, and execution of memory. It also has multi-threaded support (can emulate multiple CPU threads at once). There are 78 instruction handlers written (part of them written with help of AI).
 
 # Building tests
 
