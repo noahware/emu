@@ -58,6 +58,8 @@ emu::status emu::arm64_core::execute_insn(cpu& proc, const cs_insn& insn)
 		case ARM64_INS_MOVZ:  return handle_movz(proc, insn);
 		case ARM64_INS_MOVN:  return handle_movn(proc, insn);
 		case ARM64_INS_MUL:  return handle_binop(insn, std::multiplies{});
+		case ARM64_INS_UDIV: return handle_udiv(insn);
+		case ARM64_INS_SDIV: return handle_sdiv(insn);
 		case ARM64_INS_MADD: return handle_madd(insn);
 		case ARM64_INS_MSUB: return handle_msub(insn);
 		case ARM64_INS_SVC:  return status::success;
@@ -390,6 +392,33 @@ emu::status emu::arm64_core::handle_neg(const cs_insn& insn, const bool set_flag
 	const std::uint64_t b = op_non_mem(ops[1]);
 	set_reg(ops[0].reg, 0 - b);
 	if (set_flags) set_sub_flags(ops[0].reg, 0, b);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_udiv(const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+	const std::uint64_t a = reg<std::uint64_t>(ops[1].reg);
+	const std::uint64_t b = reg<std::uint64_t>(ops[2].reg);
+	set_reg(ops[0].reg, b ? a / b : 0);
+	return status::success;
+}
+
+emu::status emu::arm64_core::handle_sdiv(const cs_insn& insn)
+{
+	const auto& ops = insn.detail->arm64.operands;
+	if (arm64_state::is_x_reg(ops[1].reg))
+	{
+		const auto a = reg<std::int64_t>(ops[1].reg);
+		const auto b = reg<std::int64_t>(ops[2].reg);
+		set_reg(ops[0].reg, b ? static_cast<std::uint64_t>(a / b) : 0);
+	}
+	else
+	{
+		const auto a = static_cast<std::int32_t>(reg<std::uint64_t>(ops[1].reg));
+		const auto b = static_cast<std::int32_t>(reg<std::uint64_t>(ops[2].reg));
+		set_reg(ops[0].reg, b ? static_cast<std::uint32_t>(a / b) : 0);
+	}
 	return status::success;
 }
 
