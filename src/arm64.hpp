@@ -69,28 +69,32 @@ namespace emu
 
 	struct arm64_state
 	{
-		std::uint64_t x[31];
-		std::uint64_t sp;
-		std::uint64_t pc;
+		std::uint64_t x[33];
 		arm64_flags flags;
 		arm64_vec_reg v[32];
 
-		[[nodiscard]] static bool is_x_reg(const arm64_reg reg)
+		[[nodiscard]] static constexpr bool is_x_reg(const arm64_reg reg)
 		{
-			return reg >= ARM64_REG_X0 && reg <= ARM64_REG_X28;
+			return (reg >= ARM64_REG_X0 && reg <= ARM64_REG_X28)
+				|| reg == ARM64_REG_X29 || reg == ARM64_REG_FP
+				|| reg == ARM64_REG_X30 || reg == ARM64_REG_LR
+				|| reg == ARM64_REG_SP  || reg == ARM64_REG_XZR;
 		}
 
-		[[nodiscard]] static bool is_w_reg(const arm64_reg reg)
+		[[nodiscard]] static constexpr bool is_w_reg(const arm64_reg reg)
 		{
-			return reg >= ARM64_REG_W0 && reg <= ARM64_REG_W28;
+			return (reg >= ARM64_REG_W0 && reg <= ARM64_REG_W30)
+				|| reg == ARM64_REG_WSP || reg == ARM64_REG_WZR;
 		}
 
-		[[nodiscard]] static int gpr_index(const arm64_reg reg)
+		[[nodiscard]] static constexpr int gpr_index(const arm64_reg reg)
 		{
-			if (is_x_reg(reg)) return reg - ARM64_REG_X0;
-			if (is_w_reg(reg)) return reg - ARM64_REG_W0;
-			if (reg == ARM64_REG_X29 || reg == ARM64_REG_FP) return 29;
-			if (reg == ARM64_REG_X30 || reg == ARM64_REG_LR) return 30;
+			if (reg >= ARM64_REG_X0 && reg <= ARM64_REG_X28) return reg - ARM64_REG_X0;
+			if (reg == ARM64_REG_FP) return 29;
+			if (reg == ARM64_REG_LR) return 30;
+			if (reg == ARM64_REG_SP || reg == ARM64_REG_XZR) return 31;
+			if (reg >= ARM64_REG_W0 && reg <= ARM64_REG_W30) return reg - ARM64_REG_W0;
+			if (reg == ARM64_REG_WSP || reg == ARM64_REG_WZR) return 31;
 			return -1;
 		}
 
@@ -108,8 +112,6 @@ namespace emu
 		{
 			if (gpr_index(reg) >= 0)
 				return is_w_reg(reg) ? 4 : 8;
-			if (reg == ARM64_REG_SP)
-				return 8;
 
 			if (reg >= ARM64_REG_Q0 && reg <= ARM64_REG_Q31) return 16;
 			if (reg >= ARM64_REG_D0 && reg <= ARM64_REG_D31) return 8;
@@ -125,8 +127,6 @@ namespace emu
 			const int gi = gpr_index(reg);
 			if (gi >= 0)
 				return is_w_reg(reg) ? static_cast<std::uint32_t>(x[gi]) : x[gi];
-			if (reg == ARM64_REG_SP)
-				return sp;
 
 			const int vi = vreg_index(reg);
 			if (vi >= 0)
@@ -145,11 +145,6 @@ namespace emu
 			if (gi >= 0)
 			{
 				x[gi] = is_w_reg(reg) ? static_cast<std::uint32_t>(val) : static_cast<std::uint64_t>(val);
-				return;
-			}
-			if (reg == ARM64_REG_SP)
-			{
-				sp = val;
 				return;
 			}
 
@@ -182,13 +177,13 @@ namespace emu
 
 		[[nodiscard]] addr_t pc() const override
 		{
-			return state_.pc;
+			return state_.x[32];
 		}
 
 		void set_pc(const addr_t new_pc) override
 		{
 			cpu_core::set_pc(new_pc);
-			state_.pc = new_pc;
+			state_.x[32] = new_pc;
 		}
 
 		[[nodiscard]] arm64_widest_reg reg(const arm64_reg reg) const
