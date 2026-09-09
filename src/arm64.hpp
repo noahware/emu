@@ -124,6 +124,9 @@ namespace emu
 
 		[[nodiscard]] arm64_widest_reg reg(const arm64_reg reg) const
 		{
+			if (reg == ARM64_REG_XZR || reg == ARM64_REG_WZR)
+				return 0;
+
 			const int gi = gpr_index(reg);
 			if (gi >= 0)
 				return is_w_reg(reg) ? static_cast<std::uint32_t>(x[gi]) : x[gi];
@@ -141,6 +144,9 @@ namespace emu
 
 		void set_reg(const arm64_reg reg, const arm64_widest_reg val)
 		{
+			if (reg == ARM64_REG_XZR || reg == ARM64_REG_WZR)
+				return;
+
 			const int gi = gpr_index(reg);
 			if (gi >= 0)
 			{
