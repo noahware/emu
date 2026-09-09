@@ -240,6 +240,24 @@ namespace emu
 		status handle_sdiv(const cs_insn& insn);
 		status handle_madd(const cs_insn& insn);
 		status handle_msub(const cs_insn& insn);
+		status handle_smull(const cs_insn& insn);
+		status handle_umull(const cs_insn& insn);
+		status handle_ubfm(const cs_insn& insn);
+		status handle_sbfm(const cs_insn& insn);
+		status handle_bfm(const cs_insn& insn);
+		status handle_shift(const cs_insn& insn);
+		status handle_csinc(const cs_insn& insn);
+		status handle_csinv(const cs_insn& insn);
+		status handle_csneg(const cs_insn& insn);
+		status handle_stxr(cpu& proc, const cs_insn& insn);
+		status handle_mvn(const cs_insn& insn);
+		status handle_clz(const cs_insn& insn);
+		status handle_cls(const cs_insn& insn);
+		status handle_rbit(const cs_insn& insn);
+		status handle_rev(const cs_insn& insn);
+		status handle_rev16(const cs_insn& insn);
+		status handle_rev32(const cs_insn& insn);
+		status handle_extr(const cs_insn& insn);
 
 		status handle_load(cpu& proc, const cs_insn& insn, std::size_t access_size = 0, bool sign_ext = false);
 		status handle_store(cpu& proc, const cs_insn& insn, std::size_t access_size = 0);
