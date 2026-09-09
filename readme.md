@@ -138,6 +138,10 @@ if (!status) // this means it contains an error
     LOG("{}", status.to_string()); // this formats it as a readable string
 ```
 
+# Credits
+
+- [@NotRequiem](https://github.com/NotRequiem) for finding bugs and helping me fix them.
+
 # License
 
 The project uses the Apache-2.0 license.
