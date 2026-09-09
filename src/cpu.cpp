@@ -66,7 +66,7 @@ emu::status emu::cpu_core::run(cpu& proc, const addr_t addr)
 			set_pc(curr_pc + insn_len);
 	}
 
-	cs_free(insn, 0);
+	cs_free(insn, 1);
 
 	return result;
 }
